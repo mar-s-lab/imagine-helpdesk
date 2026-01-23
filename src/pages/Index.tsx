@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Plus, TrendingUp, AlertTriangle, Zap, Layers } from 'lucide-react';
+import { Plus, TrendingUp, AlertTriangle, Zap, Layers, FileEdit } from 'lucide-react';
 
 import { Header } from '@/components/Header';
 import { TicketForm } from '@/components/TicketForm';
@@ -8,14 +8,15 @@ import { TicketCard } from '@/components/TicketCard';
 import { TrackingTable } from '@/components/TrackingTable';
 import { ClassificationResult } from '@/components/ClassificationResult';
 import { EditTicketDialog } from '@/components/EditTicketDialog';
+import { ApprovalBoard } from '@/components/ApprovalBoard';
 import { useTickets } from '@/hooks/useTickets';
 import { Ticket, TicketFormData, TicketStatus } from '@/types/ticket';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 
-type ViewState = 'form' | 'table' | 'result';
+type ViewState = 'form' | 'table' | 'result' | 'approvals';
 
 const Index = () => {
-  const [activeView, setActiveView] = useState<'form' | 'table'>('form');
+  const [activeView, setActiveView] = useState<'form' | 'table' | 'approvals'>('form');
   const [viewState, setViewState] = useState<ViewState>('form');
   const [lastCreatedTicket, setLastCreatedTicket] = useState<Ticket | null>(null);
   const [editingTicket, setEditingTicket] = useState<Ticket | null>(null);
@@ -26,6 +27,9 @@ const Index = () => {
     notifications,
     isProcessing,
     createTicket,
+    approveTicket,
+    rejectTicket,
+    deleteTicket,
     updateTicketStatus,
     resubmitTicket,
     linkManualCard,
@@ -43,13 +47,14 @@ const Index = () => {
       setEditingTicket(lastCreatedTicket);
       setShowEditDialog(true);
     } else {
-      setActiveView('table');
-      setViewState('table');
+      // Go to approvals to see the new draft
+      setActiveView('approvals');
+      setViewState('approvals');
     }
     setLastCreatedTicket(null);
   };
 
-  const handleViewChange = (view: 'form' | 'table') => {
+  const handleViewChange = (view: 'form' | 'table' | 'approvals') => {
     setActiveView(view);
     setViewState(view);
     setLastCreatedTicket(null);
@@ -82,13 +87,17 @@ const Index = () => {
     updateTicketStatus(ticketId, status);
   };
 
-  // Stats
+  // Stats - excluding drafts and failed reports from main stats
+  const activeTickets = tickets.filter(t => t.status !== 'draft' && t.status !== 'failed_report');
+  const draftTickets = tickets.filter(t => t.status === 'draft');
+  
   const stats = {
-    total: tickets.length,
-    hotFixes: tickets.filter(t => t.type === 'hot_fix').length,
-    bugs: tickets.filter(t => t.type === 'bug_report').length,
-    features: tickets.filter(t => t.type === 'fixed_scope').length,
+    total: activeTickets.length,
+    hotFixes: activeTickets.filter(t => t.type === 'hot_fix').length,
+    bugs: activeTickets.filter(t => t.type === 'bug_report').length,
+    features: activeTickets.filter(t => t.type === 'fixed_scope').length,
     errors: tickets.filter(t => t.type === 'error').length,
+    drafts: draftTickets.length,
   };
 
   return (
@@ -97,6 +106,7 @@ const Index = () => {
         activeView={activeView}
         onViewChange={handleViewChange}
         notificationCount={notifications.length}
+        draftCount={stats.drafts}
       />
 
       <main className="max-w-6xl mx-auto px-4 sm:px-6 py-8">
@@ -143,6 +153,24 @@ const Index = () => {
             </motion.div>
           )}
 
+          {viewState === 'approvals' && (
+            <motion.div
+              key="approvals"
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -20 }}
+              transition={{ duration: 0.3 }}
+            >
+              <ApprovalBoard
+                tickets={tickets}
+                onApprove={approveTicket}
+                onReject={rejectTicket}
+                onEdit={handleEditTicket}
+                onDelete={deleteTicket}
+              />
+            </motion.div>
+          )}
+
           {viewState === 'table' && (
             <motion.div
               key="table"
@@ -152,7 +180,7 @@ const Index = () => {
               transition={{ duration: 0.3 }}
             >
               {/* Stats */}
-              <div className="grid grid-cols-2 sm:grid-cols-5 gap-4 mb-8">
+              <div className="grid grid-cols-2 sm:grid-cols-6 gap-4 mb-8">
                 <Card>
                   <CardHeader className="pb-2">
                     <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-1">
@@ -208,6 +236,17 @@ const Index = () => {
                     <div className="text-2xl font-bold text-status-error">{stats.errors}</div>
                   </CardContent>
                 </Card>
+                <Card>
+                  <CardHeader className="pb-2">
+                    <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-1">
+                      <FileEdit className="h-4 w-4 text-muted-foreground" />
+                      Borradores
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="text-2xl font-bold">{stats.drafts}</div>
+                  </CardContent>
+                </Card>
               </div>
 
               {/* Header */}
@@ -231,7 +270,7 @@ const Index = () => {
 
               {/* Tickets as Cards (mobile) */}
               <div className="lg:hidden space-y-4 mb-8">
-                {tickets.map(ticket => (
+                {activeTickets.map(ticket => (
                   <TicketCard
                     key={ticket.id}
                     ticket={ticket}
@@ -252,7 +291,7 @@ const Index = () => {
               {/* Table (desktop) */}
               <div className="hidden lg:block">
                 <TrackingTable
-                  tickets={tickets}
+                  tickets={activeTickets}
                   onTicketClick={(ticket) => {
                     if (ticket.type === 'error') {
                       handleEditTicket(ticket.id);

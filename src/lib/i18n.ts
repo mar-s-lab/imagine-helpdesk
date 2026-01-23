@@ -12,16 +12,20 @@ export const translations = {
     'header.title': 'TicketFlow',
     'header.newTicket': 'Nuevo Ticket',
     'header.tracking': 'Seguimiento',
+    'header.approvals': 'Aprobaciones',
     
     // Form
     'form.title': 'Nuevo Ticket',
     'form.subtitle': 'Describe tu necesidad y nuestro sistema la clasificará automáticamente',
+    'form.need': '¿Cuál es tu necesidad?',
     'form.need.label': '¿Cuál es tu necesidad?',
     'form.need.placeholder': 'Describe qué necesitas de manera clara y detallada...',
     'form.need.hint': 'Sé específico sobre el problema o funcionalidad que requieres',
+    'form.desiredFlow': '¿Cuál es el flujo deseado?',
     'form.desiredFlow.label': '¿Cuál es el flujo deseado?',
     'form.desiredFlow.placeholder': 'Describe paso a paso cómo debería funcionar...',
     'form.desiredFlow.hint': 'Enumera los pasos del proceso ideal que esperas',
+    'form.context': 'Contexto',
     'form.context.label': 'Danos un poco de contexto',
     'form.context.placeholder': '¿Por qué es importante? ¿Quiénes se ven afectados? ¿Hay urgencia?',
     'form.context.hint': 'Incluye impacto en el negocio, usuarios afectados o dependencias',
@@ -65,6 +69,7 @@ export const translations = {
     'stats.bugs': 'Bugs',
     'stats.features': 'Features',
     'stats.errors': 'Errores',
+    'stats.drafts': 'Borradores',
     
     // Actions
     'action.edit': 'Editar y Re-enviar',
@@ -74,6 +79,8 @@ export const translations = {
     'action.moveToReview': 'Mover a Revisión',
     'action.moveToProduction': 'Mover a Producción',
     'action.viewBasecamp': 'Ver en Basecamp',
+    'action.cancel': 'Cancelar',
+    'action.delete': 'Eliminar',
     
     // Status
     'status.today': 'Hoy',
@@ -83,6 +90,8 @@ export const translations = {
     'status.review': 'En revisión',
     'status.production': 'Producción',
     'status.closed': 'Cerrado',
+    'status.draft': 'Borrador',
+    'status.failedReport': 'Reporte Fallido',
     
     // Types
     'type.userStory': 'Historia de Usuario',
@@ -100,22 +109,46 @@ export const translations = {
     'result.noAgent': 'Sin agente asignado',
     'result.continue': 'Continuar',
     'result.editAndResend': 'Editar y Re-enviar',
+    
+    // Ticket
+    'ticket.module': 'Módulo',
+    
+    // Approval Board
+    'approvalBoard.title': 'Tablero de Aprobación',
+    'approvalBoard.subtitle': 'Revisa y aprueba los borradores de tickets antes de enviarlos a Basecamp',
+    'approvalBoard.empty': 'No hay borradores pendientes',
+    'approvalBoard.emptyDescription': 'Los tickets clasificados aparecerán aquí para su aprobación antes de ser enviados a Basecamp.',
+    'approvalBoard.pending': 'pendientes',
+    'approvalBoard.approve': 'Aprobar',
+    'approvalBoard.reject': 'Rechazar',
+    'approvalBoard.confirmApprove': '¿Aprobar y enviar a Basecamp?',
+    'approvalBoard.confirmReject': '¿Rechazar este ticket?',
+    'approvalBoard.confirmDelete': '¿Eliminar este borrador?',
+    'approvalBoard.approveDescription': 'Este ticket será enviado a Basecamp y pasará a la tabla de seguimiento.',
+    'approvalBoard.rejectDescription': 'Este ticket será marcado como Reporte Fallido y no se enviará a Basecamp.',
+    'approvalBoard.deleteDescription': 'Este borrador será eliminado permanentemente.',
+    'approvalBoard.sendToBasecamp': 'Enviar a Basecamp',
+    'approvalBoard.markAsFailed': 'Marcar como Fallido',
   },
   en: {
     // Header
     'header.title': 'TicketFlow',
     'header.newTicket': 'New Ticket',
     'header.tracking': 'Tracking',
+    'header.approvals': 'Approvals',
     
     // Form
     'form.title': 'New Ticket',
     'form.subtitle': 'Describe your need and our system will classify it automatically',
+    'form.need': 'What is your need?',
     'form.need.label': 'What is your need?',
     'form.need.placeholder': 'Describe what you need clearly and in detail...',
     'form.need.hint': 'Be specific about the problem or functionality you require',
+    'form.desiredFlow': 'What is the desired flow?',
     'form.desiredFlow.label': 'What is the desired flow?',
     'form.desiredFlow.placeholder': 'Describe step by step how it should work...',
     'form.desiredFlow.hint': 'List the steps of the ideal process you expect',
+    'form.context': 'Context',
     'form.context.label': 'Give us some context',
     'form.context.placeholder': 'Why is it important? Who is affected? Is there urgency?',
     'form.context.hint': 'Include business impact, affected users or dependencies',
@@ -159,6 +192,7 @@ export const translations = {
     'stats.bugs': 'Bugs',
     'stats.features': 'Features',
     'stats.errors': 'Errors',
+    'stats.drafts': 'Drafts',
     
     // Actions
     'action.edit': 'Edit and Re-submit',
@@ -168,6 +202,8 @@ export const translations = {
     'action.moveToReview': 'Move to Review',
     'action.moveToProduction': 'Move to Production',
     'action.viewBasecamp': 'View in Basecamp',
+    'action.cancel': 'Cancel',
+    'action.delete': 'Delete',
     
     // Status
     'status.today': 'Today',
@@ -177,6 +213,8 @@ export const translations = {
     'status.review': 'Review',
     'status.production': 'Production',
     'status.closed': 'Closed',
+    'status.draft': 'Draft',
+    'status.failedReport': 'Failed Report',
     
     // Types
     'type.userStory': 'User Story',
@@ -194,22 +232,46 @@ export const translations = {
     'result.noAgent': 'No agent assigned',
     'result.continue': 'Continue',
     'result.editAndResend': 'Edit and Re-submit',
+    
+    // Ticket
+    'ticket.module': 'Module',
+    
+    // Approval Board
+    'approvalBoard.title': 'Approval Board',
+    'approvalBoard.subtitle': 'Review and approve ticket drafts before sending to Basecamp',
+    'approvalBoard.empty': 'No pending drafts',
+    'approvalBoard.emptyDescription': 'Classified tickets will appear here for approval before being sent to Basecamp.',
+    'approvalBoard.pending': 'pending',
+    'approvalBoard.approve': 'Approve',
+    'approvalBoard.reject': 'Reject',
+    'approvalBoard.confirmApprove': 'Approve and send to Basecamp?',
+    'approvalBoard.confirmReject': 'Reject this ticket?',
+    'approvalBoard.confirmDelete': 'Delete this draft?',
+    'approvalBoard.approveDescription': 'This ticket will be sent to Basecamp and moved to the tracking table.',
+    'approvalBoard.rejectDescription': 'This ticket will be marked as Failed Report and will not be sent to Basecamp.',
+    'approvalBoard.deleteDescription': 'This draft will be permanently deleted.',
+    'approvalBoard.sendToBasecamp': 'Send to Basecamp',
+    'approvalBoard.markAsFailed': 'Mark as Failed',
   },
   'pt-BR': {
     // Header
     'header.title': 'TicketFlow',
     'header.newTicket': 'Novo Ticket',
     'header.tracking': 'Acompanhamento',
+    'header.approvals': 'Aprovações',
     
     // Form
     'form.title': 'Novo Ticket',
     'form.subtitle': 'Descreva sua necessidade e nosso sistema irá classificá-la automaticamente',
+    'form.need': 'Qual é a sua necessidade?',
     'form.need.label': 'Qual é a sua necessidade?',
     'form.need.placeholder': 'Descreva o que você precisa de forma clara e detalhada...',
     'form.need.hint': 'Seja específico sobre o problema ou funcionalidade que você requer',
+    'form.desiredFlow': 'Qual é o fluxo desejado?',
     'form.desiredFlow.label': 'Qual é o fluxo desejado?',
     'form.desiredFlow.placeholder': 'Descreva passo a passo como deveria funcionar...',
     'form.desiredFlow.hint': 'Liste os passos do processo ideal que você espera',
+    'form.context': 'Contexto',
     'form.context.label': 'Nos dê um pouco de contexto',
     'form.context.placeholder': 'Por que é importante? Quem é afetado? Há urgência?',
     'form.context.hint': 'Inclua impacto no negócio, usuários afetados ou dependências',
@@ -253,6 +315,7 @@ export const translations = {
     'stats.bugs': 'Bugs',
     'stats.features': 'Features',
     'stats.errors': 'Erros',
+    'stats.drafts': 'Rascunhos',
     
     // Actions
     'action.edit': 'Editar e Reenviar',
@@ -262,6 +325,8 @@ export const translations = {
     'action.moveToReview': 'Mover para Revisão',
     'action.moveToProduction': 'Mover para Produção',
     'action.viewBasecamp': 'Ver no Basecamp',
+    'action.cancel': 'Cancelar',
+    'action.delete': 'Excluir',
     
     // Status
     'status.today': 'Hoje',
@@ -271,6 +336,8 @@ export const translations = {
     'status.review': 'Em Revisão',
     'status.production': 'Produção',
     'status.closed': 'Fechado',
+    'status.draft': 'Rascunho',
+    'status.failedReport': 'Relatório Falhado',
     
     // Types
     'type.userStory': 'História de Usuário',
@@ -288,6 +355,26 @@ export const translations = {
     'result.noAgent': 'Sem agente atribuído',
     'result.continue': 'Continuar',
     'result.editAndResend': 'Editar e Reenviar',
+    
+    // Ticket
+    'ticket.module': 'Módulo',
+    
+    // Approval Board
+    'approvalBoard.title': 'Quadro de Aprovação',
+    'approvalBoard.subtitle': 'Revise e aprove rascunhos de tickets antes de enviar ao Basecamp',
+    'approvalBoard.empty': 'Nenhum rascunho pendente',
+    'approvalBoard.emptyDescription': 'Tickets classificados aparecerão aqui para aprovação antes de serem enviados ao Basecamp.',
+    'approvalBoard.pending': 'pendentes',
+    'approvalBoard.approve': 'Aprovar',
+    'approvalBoard.reject': 'Rejeitar',
+    'approvalBoard.confirmApprove': 'Aprovar e enviar ao Basecamp?',
+    'approvalBoard.confirmReject': 'Rejeitar este ticket?',
+    'approvalBoard.confirmDelete': 'Excluir este rascunho?',
+    'approvalBoard.approveDescription': 'Este ticket será enviado ao Basecamp e movido para a tabela de acompanhamento.',
+    'approvalBoard.rejectDescription': 'Este ticket será marcado como Relatório Falhado e não será enviado ao Basecamp.',
+    'approvalBoard.deleteDescription': 'Este rascunho será excluído permanentemente.',
+    'approvalBoard.sendToBasecamp': 'Enviar ao Basecamp',
+    'approvalBoard.markAsFailed': 'Marcar como Falhado',
   },
 } as const;
 

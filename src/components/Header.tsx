@@ -1,15 +1,17 @@
-import { Ticket, LayoutDashboard, Bell, Settings } from 'lucide-react';
+import { Ticket, LayoutDashboard, Bell, Settings, ClipboardCheck } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
 import { LanguageSwitcher } from '@/components/LanguageSwitcher';
 import { useLanguage } from '@/contexts/LanguageContext';
 
 interface HeaderProps {
-  activeView: 'form' | 'table';
-  onViewChange: (view: 'form' | 'table') => void;
+  activeView: 'form' | 'table' | 'approvals';
+  onViewChange: (view: 'form' | 'table' | 'approvals') => void;
   notificationCount?: number;
+  draftCount?: number;
 }
 
-export function Header({ activeView, onViewChange, notificationCount = 0 }: HeaderProps) {
+export function Header({ activeView, onViewChange, notificationCount = 0, draftCount = 0 }: HeaderProps) {
   const { t } = useLanguage();
 
   return (
@@ -38,6 +40,23 @@ export function Header({ activeView, onViewChange, notificationCount = 0 }: Head
             >
               <Ticket className="h-4 w-4" />
               <span className="hidden sm:inline">{t('header.newTicket')}</span>
+            </Button>
+            <Button
+              variant={activeView === 'approvals' ? 'secondary' : 'ghost'}
+              size="sm"
+              onClick={() => onViewChange('approvals')}
+              className="gap-2 relative"
+            >
+              <ClipboardCheck className="h-4 w-4" />
+              <span className="hidden sm:inline">{t('header.approvals')}</span>
+              {draftCount > 0 && (
+                <Badge 
+                  variant="destructive" 
+                  className="absolute -top-1 -right-1 h-5 w-5 p-0 flex items-center justify-center text-[10px]"
+                >
+                  {draftCount > 9 ? '9+' : draftCount}
+                </Badge>
+              )}
             </Button>
             <Button
               variant={activeView === 'table' ? 'secondary' : 'ghost'}

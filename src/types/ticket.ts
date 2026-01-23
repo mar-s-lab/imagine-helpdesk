@@ -1,7 +1,7 @@
 import { Attachment } from '@/components/AttachmentInput';
 
 export type TicketType = 'fixed_scope' | 'bug_report' | 'hot_fix' | 'error';
-export type TicketStatus = 'today' | 'this_week' | 'backlog' | 'in_progress' | 'review' | 'production' | 'closed';
+export type TicketStatus = 'draft' | 'today' | 'this_week' | 'backlog' | 'in_progress' | 'review' | 'production' | 'closed' | 'failed_report';
 
 export interface TicketFormData {
   need: string;
@@ -34,6 +34,8 @@ export interface Ticket {
   notes: string[];
   linkedCardId?: string;
   followUpDate?: Date;
+  basecampSynced?: boolean;
+  rejectionReason?: string;
 }
 
 export interface EmailNotification {
@@ -57,6 +59,7 @@ export const MODULES = [
 ] as const;
 
 export const STATUS_CONFIG: Record<TicketStatus, { label: string; columnName: string }> = {
+  draft: { label: 'Borrador', columnName: 'Draft' },
   today: { label: 'Hoy', columnName: 'Today' },
   this_week: { label: 'Esta semana', columnName: 'This Week' },
   backlog: { label: 'Por definir', columnName: 'Backlog' },
@@ -64,6 +67,7 @@ export const STATUS_CONFIG: Record<TicketStatus, { label: string; columnName: st
   review: { label: 'En revisión', columnName: 'Review' },
   production: { label: 'Producción', columnName: 'Production' },
   closed: { label: 'Cerrado', columnName: 'Closed' },
+  failed_report: { label: 'Reporte Fallido', columnName: 'Failed Report' },
 };
 
 export const TYPE_CONFIG: Record<TicketType, { label: string; prefix: string; className: string }> = {
