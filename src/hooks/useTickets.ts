@@ -19,6 +19,9 @@ export function useTickets() {
     const classification = classifyTicket(formData);
     const module = detectModule(`${formData.need} ${formData.desiredFlow} ${formData.context}`);
     
+    // Determine if ticket goes to draft (for approval) or directly to error handling
+    const shouldGoDraft = classification.type !== 'error';
+    
     const ticket: Ticket = {
       id: `ticket-${Date.now()}`,
       nomenclature: classification.type !== 'error' 
@@ -27,13 +30,15 @@ export function useTickets() {
       module,
       description: formData.need,
       type: classification.type,
-      status: classification.type !== 'error' ? determineInitialStatus(classification.type) : 'backlog',
+      // All valid tickets start as draft (pending approval)
+      status: shouldGoDraft ? 'draft' : 'backlog',
       createdAt: new Date(),
       updatedAt: new Date(),
       desiredDate: formData.desiredDate,
       formData,
       classification,
       notes: [],
+      basecampSynced: false,
     };
 
     // Add estimated deploy date for bugs and hotfixes
@@ -52,17 +57,57 @@ export function useTickets() {
 
     setTickets(prev => [ticket, ...prev]);
     
-    // Send notifications
-    if (classification.type !== 'error') {
-      await sendOpeningNotification(ticket);
-      
-      if (ticket.estimatedDeployDate) {
-        await sendDeployEstimateNotification(ticket);
-      }
-    }
-    
     setIsProcessing(false);
     return ticket;
+  }, []);
+
+  // Approve ticket - moves to proper status and "sends to Basecamp"
+  const approveTicket = useCallback(async (ticketId: string) => {
+    setTickets(prev => prev.map(ticket => {
+      if (ticket.id === ticketId && ticket.status === 'draft') {
+        const newStatus = determineInitialStatus(ticket.type);
+        const updated = {
+          ...ticket,
+          status: newStatus,
+          updatedAt: new Date(),
+          basecampSynced: true,
+        };
+        
+        // Send notifications after approval
+        sendOpeningNotification(updated);
+        if (updated.estimatedDeployDate) {
+          sendDeployEstimateNotification(updated);
+        }
+        
+        return updated;
+      }
+      return ticket;
+    }));
+    
+    toast.success('✅ Ticket aprobado y enviado a Basecamp');
+  }, []);
+
+  // Reject ticket - marks as failed report
+  const rejectTicket = useCallback((ticketId: string) => {
+    setTickets(prev => prev.map(ticket => {
+      if (ticket.id === ticketId) {
+        return {
+          ...ticket,
+          status: 'failed_report' as TicketStatus,
+          updatedAt: new Date(),
+          basecampSynced: false,
+        };
+      }
+      return ticket;
+    }));
+    
+    toast.info('📋 Ticket marcado como Reporte Fallido');
+  }, []);
+
+  // Delete draft ticket
+  const deleteTicket = useCallback((ticketId: string) => {
+    setTickets(prev => prev.filter(t => t.id !== ticketId));
+    toast.info('🗑️ Borrador eliminado');
   }, []);
 
   const updateTicketStatus = useCallback(async (ticketId: string, newStatus: TicketStatus) => {
@@ -168,6 +213,9 @@ export function useTickets() {
     notifications,
     isProcessing,
     createTicket,
+    approveTicket,
+    rejectTicket,
+    deleteTicket,
     updateTicketStatus,
     updateTicket,
     resubmitTicket,

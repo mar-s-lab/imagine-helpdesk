@@ -146,22 +146,20 @@ export function ClassificationResult({ ticket, onContinue }: ClassificationResul
                 <>
                   <li className="flex items-center gap-2">
                     <CheckCircle className="h-4 w-4 text-primary" />
-                    Card creada en Basecamp (simulado)
+                    Borrador creado - pendiente de aprobación
                   </li>
                   <li className="flex items-center gap-2">
                     <CheckCircle className="h-4 w-4 text-primary" />
-                    Tabla de seguimiento actualizada
+                    Revisar en el Tablero de Aprobación
                   </li>
                   <li className="flex items-center gap-2">
-                    <CheckCircle className="h-4 w-4 text-primary" />
-                    Correo de apertura enviado al equipo
+                    <CheckCircle className="h-4 w-4 text-muted-foreground/50" />
+                    Al aprobar: se enviará a Basecamp
                   </li>
-                  {ticket.estimatedDeployDate && (
-                    <li className="flex items-center gap-2">
-                      <CheckCircle className="h-4 w-4 text-primary" />
-                      Notificación de fecha estimada a Soporte
-                    </li>
-                  )}
+                  <li className="flex items-center gap-2">
+                    <CheckCircle className="h-4 w-4 text-muted-foreground/50" />
+                    Tabla de seguimiento se actualizará
+                  </li>
                 </>
               )}
             </ul>
@@ -171,7 +169,7 @@ export function ClassificationResult({ ticket, onContinue }: ClassificationResul
             onClick={onContinue}
             className="w-full flex items-center justify-center gap-2 py-3 px-4 bg-primary text-primary-foreground rounded-lg font-medium hover:bg-primary/90 transition-colors"
           >
-            {ticket.type === 'error' ? 'Editar Ticket' : 'Ver Tabla de Seguimiento'}
+            {ticket.type === 'error' ? 'Editar Ticket' : 'Ver Tablero de Aprobación'}
             <ArrowRight className="h-4 w-4" />
           </button>
         </CardContent>
