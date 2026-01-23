@@ -23,7 +23,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { cn } from '@/lib/utils';
-import { Ticket, TYPE_CONFIG, STATUS_CONFIG, PRIORITY_CONFIG } from '@/types/ticket';
+import { Ticket, TYPE_CONFIG, STATUS_CONFIG } from '@/types/ticket';
 
 interface TicketCardProps {
   ticket: Ticket;
@@ -36,7 +36,6 @@ interface TicketCardProps {
 export function TicketCard({ ticket, onStatusChange, onEdit, onLinkCard, onClose }: TicketCardProps) {
   const typeConfig = TYPE_CONFIG[ticket.type];
   const statusConfig = STATUS_CONFIG[ticket.status];
-  const priorityConfig = PRIORITY_CONFIG[ticket.priority];
 
   const getTypeIcon = () => {
     switch (ticket.type) {
@@ -90,13 +89,10 @@ export function TicketCard({ ticket, onStatusChange, onEdit, onLinkCard, onClose
             {ticket.description}
           </h3>
 
-          {/* Module and Priority */}
+          {/* Module */}
           <div className="flex items-center gap-2 text-sm text-muted-foreground mb-3">
             <span className="bg-secondary px-2 py-0.5 rounded text-xs font-medium">
               {ticket.module}
-            </span>
-            <span className={cn('px-2 py-0.5 rounded text-xs font-medium', priorityConfig.color)}>
-              {priorityConfig.label}
             </span>
           </div>
 
