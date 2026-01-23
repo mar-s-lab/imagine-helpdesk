@@ -5,17 +5,20 @@ import { TicketFormData, ClassificationResult, TicketType, MODULES } from '@/typ
 
 const ERROR_KEYWORDS = [
   'no funciona', 'error', 'falla', 'bug', 'problema', 'crash',
-  'roto', 'no carga', 'no aparece', 'lento', 'timeout'
+  'roto', 'no carga', 'no aparece', 'lento', 'timeout',
+  'not working', 'broken', 'fails', 'slow', 'down'
 ];
 
 const CRITICAL_KEYWORDS = [
   'urgente', 'crítico', 'producción caída', 'no pueden', 'bloquea',
-  'clientes afectados', 'operación parada', 'emergencia', 'hotfix'
+  'clientes afectados', 'operación parada', 'emergencia', 'hotfix',
+  'urgent', 'critical', 'production down', 'blocked', 'emergency'
 ];
 
 const FEATURE_KEYWORDS = [
   'nuevo', 'agregar', 'implementar', 'crear', 'añadir', 'funcionalidad',
-  'feature', 'mejora', 'optimizar', 'desarrollo', 'integración'
+  'feature', 'mejora', 'optimizar', 'desarrollo', 'integración',
+  'new', 'add', 'implement', 'create', 'enhancement', 'improve'
 ];
 
 function countKeywordMatches(text: string, keywords: string[]): number {
@@ -27,13 +30,13 @@ function detectModule(text: string): string {
   const lowerText = text.toLowerCase();
   
   const modulePatterns: Record<string, string[]> = {
-    'Auth': ['login', 'autenticación', 'sesión', 'password', 'registro'],
-    'Payments': ['pago', 'factura', 'cobro', 'stripe', 'transacción'],
-    'Users': ['usuario', 'perfil', 'cuenta', 'roles', 'permisos'],
-    'Reports': ['reporte', 'informe', 'estadística', 'dashboard', 'métricas'],
-    'API': ['api', 'endpoint', 'integración', 'webhook'],
-    'UI': ['interfaz', 'botón', 'pantalla', 'diseño', 'visual'],
-    'Core': ['core', 'sistema', 'base', 'principal'],
+    'Auth': ['login', 'autenticación', 'sesión', 'password', 'registro', 'authentication', 'session'],
+    'Payments': ['pago', 'factura', 'cobro', 'stripe', 'transacción', 'payment', 'invoice', 'transaction'],
+    'Users': ['usuario', 'perfil', 'cuenta', 'roles', 'permisos', 'user', 'profile', 'account'],
+    'Reports': ['reporte', 'informe', 'estadística', 'dashboard', 'métricas', 'report', 'statistics', 'metrics'],
+    'API': ['api', 'endpoint', 'integración', 'webhook', 'integration'],
+    'UI': ['interfaz', 'botón', 'pantalla', 'diseño', 'visual', 'interface', 'button', 'screen', 'design'],
+    'Core': ['core', 'sistema', 'base', 'principal', 'system', 'main'],
   };
 
   for (const [module, patterns] of Object.entries(modulePatterns)) {
@@ -93,7 +96,7 @@ export function classifyTicket(data: TicketFormData): ClassificationResult {
   }
   
   // Bug Report: Error affecting functionality
-  if (errorMatches >= 2 || (errorMatches >= 1 && data.priority === 'high')) {
+  if (errorMatches >= 2) {
     return {
       type: 'bug_report',
       confidence: 0.80 + Math.min(errorMatches * 0.05, 0.15),

@@ -28,7 +28,6 @@ export function useTickets() {
       description: formData.need,
       type: classification.type,
       status: classification.type !== 'error' ? determineInitialStatus(classification.type) : 'backlog',
-      priority: formData.priority,
       createdAt: new Date(),
       updatedAt: new Date(),
       desiredDate: formData.desiredDate,

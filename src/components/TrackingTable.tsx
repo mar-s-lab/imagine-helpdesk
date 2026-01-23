@@ -1,6 +1,6 @@
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
-import { ArrowUpDown, Filter } from 'lucide-react';
+import { ArrowUpDown } from 'lucide-react';
 
 import {
   Table,
@@ -13,7 +13,7 @@ import {
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
-import { Ticket, TYPE_CONFIG, STATUS_CONFIG, PRIORITY_CONFIG } from '@/types/ticket';
+import { Ticket, TYPE_CONFIG, STATUS_CONFIG } from '@/types/ticket';
 
 interface TrackingTableProps {
   tickets: Ticket[];
@@ -30,7 +30,7 @@ export function TrackingTable({ tickets, onTicketClick }: TrackingTableProps) {
       case 'production':
         return 'status-production';
       case 'closed':
-        return 'bg-slate-100 text-slate-500';
+        return 'bg-muted text-muted-foreground';
       default:
         return 'status-backlog';
     }
@@ -59,7 +59,6 @@ export function TrackingTable({ tickets, onTicketClick }: TrackingTableProps) {
             <TableHead>Tipo</TableHead>
             <TableHead className="max-w-[250px]">Descripción</TableHead>
             <TableHead>Módulo</TableHead>
-            <TableHead>Prioridad</TableHead>
             <TableHead>Estado</TableHead>
             <TableHead>Creación</TableHead>
             <TableHead>Entrega Est.</TableHead>
@@ -69,15 +68,14 @@ export function TrackingTable({ tickets, onTicketClick }: TrackingTableProps) {
           {tickets.map((ticket) => {
             const typeConfig = TYPE_CONFIG[ticket.type];
             const statusConfig = STATUS_CONFIG[ticket.status];
-            const priorityConfig = PRIORITY_CONFIG[ticket.priority];
 
             return (
               <TableRow 
                 key={ticket.id}
                 className={cn(
                   'cursor-pointer transition-colors',
-                  ticket.type === 'error' && 'bg-red-50/50',
-                  ticket.type === 'hot_fix' && 'bg-amber-50/30',
+                  ticket.type === 'error' && 'bg-destructive/5',
+                  ticket.type === 'hot_fix' && 'bg-accent/30',
                 )}
                 onClick={() => onTicketClick?.(ticket)}
               >
@@ -98,11 +96,6 @@ export function TrackingTable({ tickets, onTicketClick }: TrackingTableProps) {
                 <TableCell>
                   <span className="bg-secondary px-2 py-0.5 rounded text-xs font-medium">
                     {ticket.module}
-                  </span>
-                </TableCell>
-                <TableCell>
-                  <span className={cn('px-2 py-0.5 rounded text-xs font-medium', priorityConfig.color)}>
-                    {priorityConfig.label}
                   </span>
                 </TableCell>
                 <TableCell>
