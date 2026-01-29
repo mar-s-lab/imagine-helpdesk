@@ -1,4 +1,4 @@
-import { TicketFormData, ClassificationResult, TicketType, MODULES } from '@/types/ticket';
+import { TicketFormData, ClassificationResult, TicketType, MODULES, UrgencyLevel } from '@/types/ticket';
 
 // Simulated LLM classification logic
 // In production, this would call FastAPI backend with actual LLM
@@ -18,7 +18,8 @@ const CRITICAL_KEYWORDS = [
 const FEATURE_KEYWORDS = [
   'nuevo', 'agregar', 'implementar', 'crear', 'añadir', 'funcionalidad',
   'feature', 'mejora', 'optimizar', 'desarrollo', 'integración',
-  'new', 'add', 'implement', 'create', 'enhancement', 'improve'
+  'new', 'add', 'implement', 'create', 'enhancement', 'improve',
+  'quiero', 'necesito que', 'sería bueno', 'would be nice', 'want to'
 ];
 
 function countKeywordMatches(text: string, keywords: string[]): number {
@@ -37,6 +38,7 @@ function detectModule(text: string): string {
     'API': ['api', 'endpoint', 'integración', 'webhook', 'integration'],
     'UI': ['interfaz', 'botón', 'pantalla', 'diseño', 'visual', 'interface', 'button', 'screen', 'design'],
     'Core': ['core', 'sistema', 'base', 'principal', 'system', 'main'],
+    'Integration': ['salesforce', 'basecamp', 'crm', 'erp'],
   };
 
   for (const [module, patterns] of Object.entries(modulePatterns)) {
@@ -48,19 +50,50 @@ function detectModule(text: string): string {
   return MODULES[Math.floor(Math.random() * MODULES.length)];
 }
 
+function getCombinedText(data: TicketFormData): string {
+  // New form fields
+  if (data.whatIsHappening) {
+    return `${data.whatIsHappening} ${data.expectedFlow || ''} ${data.additionalContext || ''}`;
+  }
+  // Legacy form fields
+  return `${data.need || ''} ${data.desiredFlow || ''} ${data.context || ''}`;
+}
+
+function getDescription(data: TicketFormData): string {
+  return data.whatIsHappening || data.need || '';
+}
+
 function isInformationSufficient(data: TicketFormData): boolean {
-  const needLength = data.need.trim().length;
-  const flowLength = data.desiredFlow.trim().length;
-  const contextLength = data.context.trim().length;
+  // New form structure
+  if (data.whatIsHappening !== undefined) {
+    const happeningLength = (data.whatIsHappening || '').trim().length;
+    const expectedLength = (data.expectedFlow || '').trim().length;
+    
+    if (happeningLength < 10 || expectedLength < 10) {
+      return false;
+    }
+    
+    // Check if it's just filler text
+    const fillerPatterns = ['asdf', 'test', '...', 'xxx', 'aaa', '123'];
+    const combinedText = getCombinedText(data).toLowerCase();
+    if (fillerPatterns.some(p => combinedText.includes(p))) {
+      return false;
+    }
+    
+    return true;
+  }
   
-  // Check minimum lengths
+  // Legacy form structure
+  const needLength = (data.need || '').trim().length;
+  const flowLength = (data.desiredFlow || '').trim().length;
+  const contextLength = (data.context || '').trim().length;
+  
   if (needLength < 20 || flowLength < 15 || contextLength < 10) {
     return false;
   }
   
-  // Check if it's just filler text
   const fillerPatterns = ['asdf', 'test', '...', 'xxx', 'aaa'];
-  const combinedText = `${data.need} ${data.desiredFlow} ${data.context}`.toLowerCase();
+  const combinedText = getCombinedText(data).toLowerCase();
   if (fillerPatterns.some(p => combinedText.includes(p))) {
     return false;
   }
@@ -68,24 +101,47 @@ function isInformationSufficient(data: TicketFormData): boolean {
   return true;
 }
 
+function classifyByUrgency(urgency: UrgencyLevel): TicketType | null {
+  // If user explicitly marks as blocking, lean towards hot_fix
+  if (urgency === 'blocks') {
+    return 'hot_fix';
+  }
+  return null;
+}
+
 export function classifyTicket(data: TicketFormData): ClassificationResult {
-  const combinedText = `${data.need} ${data.desiredFlow} ${data.context}`;
+  const combinedText = getCombinedText(data);
   
   // Check if information is sufficient
   if (!isInformationSufficient(data)) {
     return {
       type: 'error',
       confidence: 0.95,
-      reasoning: 'La información proporcionada no es suficiente para clasificar el ticket. Por favor, proporciona más detalles sobre la necesidad, el flujo deseado y el contexto.',
+      reasoning: 'La información proporcionada no es suficiente para clasificar el ticket. Por favor, proporciona más detalles.',
       agent: 'skip',
     };
+  }
+  
+  // Use urgency field from new form if available
+  if (data.urgency) {
+    const urgencyType = classifyByUrgency(data.urgency);
+    
+    // If user says it blocks, prioritize as hot_fix
+    if (urgencyType === 'hot_fix') {
+      return {
+        type: 'hot_fix',
+        confidence: 0.90,
+        reasoning: 'El usuario indica que este problema bloquea la operación. Se requiere atención inmediata.',
+        agent: 'skip',
+      };
+    }
   }
   
   const errorMatches = countKeywordMatches(combinedText, ERROR_KEYWORDS);
   const criticalMatches = countKeywordMatches(combinedText, CRITICAL_KEYWORDS);
   const featureMatches = countKeywordMatches(combinedText, FEATURE_KEYWORDS);
   
-  // Hot Fix: Critical bug affecting operations
+  // Hot Fix: Critical bug affecting operations (also consider urgency)
   if (criticalMatches >= 2 || (errorMatches >= 1 && criticalMatches >= 1)) {
     return {
       type: 'hot_fix',
@@ -96,7 +152,8 @@ export function classifyTicket(data: TicketFormData): ClassificationResult {
   }
   
   // Bug Report: Error affecting functionality
-  if (errorMatches >= 2) {
+  // Also consider if user says it "affects" their work
+  if (errorMatches >= 2 || (errorMatches >= 1 && data.urgency === 'affects')) {
     return {
       type: 'bug_report',
       confidence: 0.80 + Math.min(errorMatches * 0.05, 0.15),
@@ -106,7 +163,8 @@ export function classifyTicket(data: TicketFormData): ClassificationResult {
   }
   
   // Fixed Scope: New feature or enhancement
-  if (featureMatches >= 1 || (errorMatches === 0 && criticalMatches === 0)) {
+  // Also if not urgent and affecting nobody critically
+  if (featureMatches >= 1 || (errorMatches === 0 && criticalMatches === 0) || data.urgency === 'not_urgent') {
     return {
       type: 'fixed_scope',
       confidence: 0.75 + Math.min(featureMatches * 0.05, 0.20),
@@ -155,4 +213,4 @@ export function determineInitialStatus(type: TicketType): 'today' | 'this_week' 
   }
 }
 
-export { detectModule };
+export { detectModule, getCombinedText, getDescription };

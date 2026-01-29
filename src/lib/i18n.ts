@@ -14,9 +14,61 @@ export const translations = {
     'header.tracking': 'Seguimiento',
     'header.approvals': 'Aprobaciones',
     
-    // Form
+    // Form - New friendly questions
     'form.title': 'Nuevo Ticket',
-    'form.subtitle': 'Describe tu necesidad y nuestro sistema la clasificará automáticamente',
+    'form.subtitle': 'Cuéntanos qué necesitas y te ayudaremos a resolverlo',
+    'form.optional': 'Opcional',
+    
+    // Question 1: What's happening
+    'form.whatIsHappening.label': '¿Qué está pasando o qué quieres cambiar?',
+    'form.whatIsHappening.hint': 'Describe el problema, error o mejora que detectaste',
+    'form.whatIsHappening.placeholder': 'Por ejemplo: "El botón de pago no funciona cuando intento completar una compra" o "Necesito que el reporte incluya la fecha de última compra"...',
+    
+    // Question 2: Expected flow
+    'form.expectedFlow.label': '¿Cuál es el flujo esperado o qué debería pasar normalmente?',
+    'form.expectedFlow.hint': 'Esto nos ayuda a entender la diferencia entre el comportamiento actual y el esperado',
+    'form.expectedFlow.placeholder': 'Por ejemplo: "Debería mostrar una confirmación después de hacer clic en pagar y redirigir al resumen de la orden"...',
+    
+    // Question 3: Where
+    'form.whereOccurs.label': '¿Dónde ocurre?',
+    'form.whereOccurs.otherPlaceholder': 'Especifica dónde ocurre...',
+    'form.location.app': 'App móvil',
+    'form.location.salesforce': 'Salesforce',
+    'form.location.web': 'Plataforma web',
+    'form.location.internalProcess': 'Proceso interno',
+    'form.location.other': 'Otro',
+    
+    // Question 4: Who's affected
+    'form.affectedParty.label': '¿A quién está afectando?',
+    'form.affected.customers': 'Clientes',
+    'form.affected.internal': 'Equipo interno',
+    'form.affected.both': 'Ambos',
+    
+    // Question 5: Urgency
+    'form.urgency.label': '¿Qué tan urgente es para la operación?',
+    'form.urgency.blocks': '🚨 Bloquea',
+    'form.urgency.blocksDesc': 'No podemos operar hasta que se resuelva',
+    'form.urgency.affects': '⚠️ Afecta',
+    'form.urgency.affectsDesc': 'Podemos trabajar pero con dificultades',
+    'form.urgency.notUrgent': '📋 No urgente',
+    'form.urgency.notUrgentDesc': 'Es una mejora o puede esperar',
+    
+    // Question 6: Additional context
+    'form.additionalContext.label': 'Danos un poco más de contexto',
+    'form.additionalContext.hint': 'Pasos para replicar, ejemplos, links, screenshots, usuario afectado, etc.',
+    'form.additionalContext.placeholder': 'Cualquier información adicional que nos ayude a entender mejor...',
+    
+    'form.submit': 'Enviar Ticket',
+    'form.submitting': 'Procesando ticket...',
+    'form.attachments': 'Adjuntos',
+    'form.attachments.hint': 'Agrega fotos, videos o enlaces para dar más contexto',
+    'form.addPhoto': 'Agregar foto',
+    'form.addVideo': 'Agregar video',
+    'form.addLink': 'Agregar enlace',
+    'form.linkUrl': 'URL del enlace',
+    'form.linkDescription': 'Descripción (opcional)',
+    
+    // Legacy form fields (for backward compatibility)
     'form.need': '¿Cuál es tu necesidad?',
     'form.need.label': '¿Cuál es tu necesidad?',
     'form.need.placeholder': 'Describe qué necesitas de manera clara y detallada...',
@@ -33,17 +85,10 @@ export const translations = {
     'form.desiredDate.placeholder': 'Selecciona una fecha',
     'form.desiredDate.hint': 'Solo se permiten fechas a partir de mañana',
     'form.desiredDate.error': 'No se permiten fechas pasadas ni la fecha de hoy. Selecciona una fecha futura.',
-    'form.submit': 'Enviar Ticket',
-    'form.submitting': 'Procesando ticket...',
-    'form.attachments': 'Adjuntos',
-    'form.attachments.hint': 'Agrega fotos, videos o enlaces para dar más contexto',
-    'form.addPhoto': 'Agregar foto',
-    'form.addVideo': 'Agregar video',
-    'form.addLink': 'Agregar enlace',
-    'form.linkUrl': 'URL del enlace',
-    'form.linkDescription': 'Descripción (opcional)',
     
     // Validation
+    'validation.whatIsHappening.min': 'Describe qué está pasando en al menos 10 caracteres',
+    'validation.expectedFlow.min': 'Describe el flujo esperado en al menos 10 caracteres',
     'validation.need.min': 'Describe tu necesidad en al menos 20 caracteres',
     'validation.desiredFlow.min': 'Describe el flujo deseado en al menos 15 caracteres',
     'validation.context.min': 'Proporciona contexto en al menos 10 caracteres',
@@ -137,9 +182,61 @@ export const translations = {
     'header.tracking': 'Tracking',
     'header.approvals': 'Approvals',
     
-    // Form
+    // Form - New friendly questions
     'form.title': 'New Ticket',
-    'form.subtitle': 'Describe your need and our system will classify it automatically',
+    'form.subtitle': 'Tell us what you need and we\'ll help you solve it',
+    'form.optional': 'Optional',
+    
+    // Question 1: What's happening
+    'form.whatIsHappening.label': 'What\'s happening or what do you want to change?',
+    'form.whatIsHappening.hint': 'Describe the problem, error, or improvement you detected',
+    'form.whatIsHappening.placeholder': 'For example: "The payment button doesn\'t work when I try to complete a purchase" or "I need the report to include the last purchase date"...',
+    
+    // Question 2: Expected flow
+    'form.expectedFlow.label': 'What\'s the expected flow or what should normally happen?',
+    'form.expectedFlow.hint': 'This helps us understand the difference between current and expected behavior',
+    'form.expectedFlow.placeholder': 'For example: "It should show a confirmation after clicking pay and redirect to the order summary"...',
+    
+    // Question 3: Where
+    'form.whereOccurs.label': 'Where does it occur?',
+    'form.whereOccurs.otherPlaceholder': 'Specify where it occurs...',
+    'form.location.app': 'Mobile app',
+    'form.location.salesforce': 'Salesforce',
+    'form.location.web': 'Web platform',
+    'form.location.internalProcess': 'Internal process',
+    'form.location.other': 'Other',
+    
+    // Question 4: Who's affected
+    'form.affectedParty.label': 'Who is being affected?',
+    'form.affected.customers': 'Customers',
+    'form.affected.internal': 'Internal team',
+    'form.affected.both': 'Both',
+    
+    // Question 5: Urgency
+    'form.urgency.label': 'How urgent is it for operations?',
+    'form.urgency.blocks': '🚨 Blocks',
+    'form.urgency.blocksDesc': 'We can\'t operate until it\'s resolved',
+    'form.urgency.affects': '⚠️ Affects',
+    'form.urgency.affectsDesc': 'We can work but with difficulties',
+    'form.urgency.notUrgent': '📋 Not urgent',
+    'form.urgency.notUrgentDesc': 'It\'s an improvement or can wait',
+    
+    // Question 6: Additional context
+    'form.additionalContext.label': 'Give us a bit more context',
+    'form.additionalContext.hint': 'Steps to replicate, examples, links, screenshots, affected user, etc.',
+    'form.additionalContext.placeholder': 'Any additional information that helps us understand better...',
+    
+    'form.submit': 'Submit Ticket',
+    'form.submitting': 'Processing ticket...',
+    'form.attachments': 'Attachments',
+    'form.attachments.hint': 'Add photos, videos or links for more context',
+    'form.addPhoto': 'Add photo',
+    'form.addVideo': 'Add video',
+    'form.addLink': 'Add link',
+    'form.linkUrl': 'Link URL',
+    'form.linkDescription': 'Description (optional)',
+    
+    // Legacy form fields
     'form.need': 'What is your need?',
     'form.need.label': 'What is your need?',
     'form.need.placeholder': 'Describe what you need clearly and in detail...',
@@ -156,17 +253,10 @@ export const translations = {
     'form.desiredDate.placeholder': 'Select a date',
     'form.desiredDate.hint': 'Only dates from tomorrow onwards are allowed',
     'form.desiredDate.error': 'Past dates or today are not allowed. Select a future date.',
-    'form.submit': 'Submit Ticket',
-    'form.submitting': 'Processing ticket...',
-    'form.attachments': 'Attachments',
-    'form.attachments.hint': 'Add photos, videos or links for more context',
-    'form.addPhoto': 'Add photo',
-    'form.addVideo': 'Add video',
-    'form.addLink': 'Add link',
-    'form.linkUrl': 'Link URL',
-    'form.linkDescription': 'Description (optional)',
     
     // Validation
+    'validation.whatIsHappening.min': 'Describe what\'s happening in at least 10 characters',
+    'validation.expectedFlow.min': 'Describe the expected flow in at least 10 characters',
     'validation.need.min': 'Describe your need in at least 20 characters',
     'validation.desiredFlow.min': 'Describe the desired flow in at least 15 characters',
     'validation.context.min': 'Provide context in at least 10 characters',
@@ -260,9 +350,61 @@ export const translations = {
     'header.tracking': 'Acompanhamento',
     'header.approvals': 'Aprovações',
     
-    // Form
+    // Form - New friendly questions
     'form.title': 'Novo Ticket',
-    'form.subtitle': 'Descreva sua necessidade e nosso sistema irá classificá-la automaticamente',
+    'form.subtitle': 'Conte-nos o que você precisa e vamos ajudá-lo a resolver',
+    'form.optional': 'Opcional',
+    
+    // Question 1: What's happening
+    'form.whatIsHappening.label': 'O que está acontecendo ou o que você quer mudar?',
+    'form.whatIsHappening.hint': 'Descreva o problema, erro ou melhoria que você detectou',
+    'form.whatIsHappening.placeholder': 'Por exemplo: "O botão de pagamento não funciona quando tento completar uma compra" ou "Preciso que o relatório inclua a data da última compra"...',
+    
+    // Question 2: Expected flow
+    'form.expectedFlow.label': 'Qual é o fluxo esperado ou o que deveria acontecer normalmente?',
+    'form.expectedFlow.hint': 'Isso nos ajuda a entender a diferença entre o comportamento atual e o esperado',
+    'form.expectedFlow.placeholder': 'Por exemplo: "Deveria mostrar uma confirmação após clicar em pagar e redirecionar para o resumo do pedido"...',
+    
+    // Question 3: Where
+    'form.whereOccurs.label': 'Onde ocorre?',
+    'form.whereOccurs.otherPlaceholder': 'Especifique onde ocorre...',
+    'form.location.app': 'App móvel',
+    'form.location.salesforce': 'Salesforce',
+    'form.location.web': 'Plataforma web',
+    'form.location.internalProcess': 'Processo interno',
+    'form.location.other': 'Outro',
+    
+    // Question 4: Who's affected
+    'form.affectedParty.label': 'Quem está sendo afetado?',
+    'form.affected.customers': 'Clientes',
+    'form.affected.internal': 'Equipe interna',
+    'form.affected.both': 'Ambos',
+    
+    // Question 5: Urgency
+    'form.urgency.label': 'Qual a urgência para a operação?',
+    'form.urgency.blocks': '🚨 Bloqueia',
+    'form.urgency.blocksDesc': 'Não podemos operar até que seja resolvido',
+    'form.urgency.affects': '⚠️ Afeta',
+    'form.urgency.affectsDesc': 'Podemos trabalhar mas com dificuldades',
+    'form.urgency.notUrgent': '📋 Não urgente',
+    'form.urgency.notUrgentDesc': 'É uma melhoria ou pode esperar',
+    
+    // Question 6: Additional context
+    'form.additionalContext.label': 'Dê-nos um pouco mais de contexto',
+    'form.additionalContext.hint': 'Passos para replicar, exemplos, links, screenshots, usuário afetado, etc.',
+    'form.additionalContext.placeholder': 'Qualquer informação adicional que nos ajude a entender melhor...',
+    
+    'form.submit': 'Enviar Ticket',
+    'form.submitting': 'Processando ticket...',
+    'form.attachments': 'Anexos',
+    'form.attachments.hint': 'Adicione fotos, vídeos ou links para mais contexto',
+    'form.addPhoto': 'Adicionar foto',
+    'form.addVideo': 'Adicionar vídeo',
+    'form.addLink': 'Adicionar link',
+    'form.linkUrl': 'URL do link',
+    'form.linkDescription': 'Descrição (opcional)',
+    
+    // Legacy form fields
     'form.need': 'Qual é a sua necessidade?',
     'form.need.label': 'Qual é a sua necessidade?',
     'form.need.placeholder': 'Descreva o que você precisa de forma clara e detalhada...',
@@ -279,17 +421,10 @@ export const translations = {
     'form.desiredDate.placeholder': 'Selecione uma data',
     'form.desiredDate.hint': 'Apenas datas a partir de amanhã são permitidas',
     'form.desiredDate.error': 'Datas passadas ou hoje não são permitidas. Selecione uma data futura.',
-    'form.submit': 'Enviar Ticket',
-    'form.submitting': 'Processando ticket...',
-    'form.attachments': 'Anexos',
-    'form.attachments.hint': 'Adicione fotos, vídeos ou links para mais contexto',
-    'form.addPhoto': 'Adicionar foto',
-    'form.addVideo': 'Adicionar vídeo',
-    'form.addLink': 'Adicionar link',
-    'form.linkUrl': 'URL do link',
-    'form.linkDescription': 'Descrição (opcional)',
     
     // Validation
+    'validation.whatIsHappening.min': 'Descreva o que está acontecendo em pelo menos 10 caracteres',
+    'validation.expectedFlow.min': 'Descreva o fluxo esperado em pelo menos 10 caracteres',
     'validation.need.min': 'Descreva sua necessidade em pelo menos 20 caracteres',
     'validation.desiredFlow.min': 'Descreva o fluxo desejado em pelo menos 15 caracteres',
     'validation.context.min': 'Forneça contexto em pelo menos 10 caracteres',

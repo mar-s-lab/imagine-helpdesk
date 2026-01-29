@@ -1,6 +1,6 @@
 import { useState, useCallback } from 'react';
 import { Ticket, TicketFormData, TicketStatus, EmailNotification } from '@/types/ticket';
-import { classifyTicket, generateNomenclature, determineInitialStatus, detectModule } from '@/lib/ticketClassifier';
+import { classifyTicket, generateNomenclature, determineInitialStatus, detectModule, getCombinedText, getDescription } from '@/lib/ticketClassifier';
 import { toast } from 'sonner';
 
 let ticketSequence = 1;
@@ -17,7 +17,9 @@ export function useTickets() {
     await new Promise(resolve => setTimeout(resolve, 1500));
     
     const classification = classifyTicket(formData);
-    const module = detectModule(`${formData.need} ${formData.desiredFlow} ${formData.context}`);
+    const combinedText = getCombinedText(formData);
+    const description = getDescription(formData);
+    const module = detectModule(combinedText);
     
     // Determine if ticket goes to draft (for approval) or directly to error handling
     const shouldGoDraft = classification.type !== 'error';
@@ -25,16 +27,16 @@ export function useTickets() {
     const ticket: Ticket = {
       id: `ticket-${Date.now()}`,
       nomenclature: classification.type !== 'error' 
-        ? generateNomenclature(classification.type, module, formData.need, ticketSequence++)
+        ? generateNomenclature(classification.type, module, description, ticketSequence++)
         : `ERR-${ticketSequence++}`,
       module,
-      description: formData.need,
+      description,
       type: classification.type,
       // All valid tickets start as draft (pending approval)
       status: shouldGoDraft ? 'draft' : 'backlog',
       createdAt: new Date(),
       updatedAt: new Date(),
-      desiredDate: formData.desiredDate,
+      desiredDate: formData.desiredDate || null,
       formData,
       classification,
       notes: [],
