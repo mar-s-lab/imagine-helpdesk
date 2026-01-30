@@ -1,18 +1,35 @@
-import { Ticket, LayoutDashboard, Bell, Settings, ClipboardCheck } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+import { Ticket, LayoutDashboard, Bell, Settings, ClipboardCheck, LogOut } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { LanguageSwitcher } from '@/components/LanguageSwitcher';
 import { useLanguage } from '@/contexts/LanguageContext';
+import { useAuth } from '@/contexts/AuthContext';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 
 interface HeaderProps {
-  activeView: 'form' | 'table' | 'approvals';
-  onViewChange: (view: 'form' | 'table' | 'approvals') => void;
+  activeView: 'form' | 'table' | 'approvals' | 'settings';
+  onViewChange: (view: 'form' | 'table' | 'approvals' | 'settings') => void;
   notificationCount?: number;
   draftCount?: number;
 }
 
 export function Header({ activeView, onViewChange, notificationCount = 0, draftCount = 0 }: HeaderProps) {
   const { t } = useLanguage();
+  const { user, isAdmin, signOut } = useAuth();
+  const navigate = useNavigate();
+
+  const handleSignOut = async () => {
+    await signOut();
+    navigate('/auth');
+  };
 
   return (
     <header className="bg-card border-b sticky top-0 z-50">
@@ -41,23 +58,28 @@ export function Header({ activeView, onViewChange, notificationCount = 0, draftC
               <Ticket className="h-4 w-4" />
               <span className="hidden sm:inline">{t('header.newTicket')}</span>
             </Button>
-            <Button
-              variant={activeView === 'approvals' ? 'secondary' : 'ghost'}
-              size="sm"
-              onClick={() => onViewChange('approvals')}
-              className="gap-2 relative"
-            >
-              <ClipboardCheck className="h-4 w-4" />
-              <span className="hidden sm:inline">{t('header.approvals')}</span>
-              {draftCount > 0 && (
-                <Badge 
-                  variant="destructive" 
-                  className="absolute -top-1 -right-1 h-5 w-5 p-0 flex items-center justify-center text-[10px]"
-                >
-                  {draftCount > 9 ? '9+' : draftCount}
-                </Badge>
-              )}
-            </Button>
+            
+            {/* Approvals - Only visible for admins */}
+            {isAdmin && (
+              <Button
+                variant={activeView === 'approvals' ? 'secondary' : 'ghost'}
+                size="sm"
+                onClick={() => onViewChange('approvals')}
+                className="gap-2 relative"
+              >
+                <ClipboardCheck className="h-4 w-4" />
+                <span className="hidden sm:inline">{t('header.approvals')}</span>
+                {draftCount > 0 && (
+                  <Badge 
+                    variant="destructive" 
+                    className="absolute -top-1 -right-1 h-5 w-5 p-0 flex items-center justify-center text-[10px]"
+                  >
+                    {draftCount > 9 ? '9+' : draftCount}
+                  </Badge>
+                )}
+              </Button>
+            )}
+            
             <Button
               variant={activeView === 'table' ? 'secondary' : 'ghost'}
               size="sm"
@@ -80,9 +102,32 @@ export function Header({ activeView, onViewChange, notificationCount = 0, draftC
                 </span>
               )}
             </Button>
-            <Button variant="ghost" size="icon">
-              <Settings className="h-5 w-5" />
-            </Button>
+            
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="ghost" size="icon">
+                  <Settings className="h-5 w-5" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-48">
+                <DropdownMenuLabel className="font-normal">
+                  <div className="flex flex-col space-y-1">
+                    <p className="text-sm font-medium">{user?.user_metadata?.full_name || 'Usuario'}</p>
+                    <p className="text-xs text-muted-foreground truncate">{user?.email}</p>
+                  </div>
+                </DropdownMenuLabel>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem onClick={() => onViewChange('settings')}>
+                  <Settings className="h-4 w-4 mr-2" />
+                  Configuración
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem onClick={handleSignOut} className="text-destructive">
+                  <LogOut className="h-4 w-4 mr-2" />
+                  Cerrar sesión
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
           </div>
         </div>
       </div>

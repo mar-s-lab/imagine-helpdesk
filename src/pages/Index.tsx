@@ -9,18 +9,21 @@ import { TrackingTable } from '@/components/TrackingTable';
 import { ClassificationResult } from '@/components/ClassificationResult';
 import { EditTicketDialog } from '@/components/EditTicketDialog';
 import { ApprovalBoard } from '@/components/ApprovalBoard';
+import Settings from '@/pages/Settings';
 import { useTickets } from '@/hooks/useTickets';
+import { useAuth } from '@/contexts/AuthContext';
 import { Ticket, TicketFormData, TicketStatus } from '@/types/ticket';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 
-type ViewState = 'form' | 'table' | 'result' | 'approvals';
+type ViewState = 'form' | 'table' | 'result' | 'approvals' | 'settings';
 
 const Index = () => {
-  const [activeView, setActiveView] = useState<'form' | 'table' | 'approvals'>('form');
+  const [activeView, setActiveView] = useState<'form' | 'table' | 'approvals' | 'settings'>('form');
   const [viewState, setViewState] = useState<ViewState>('form');
   const [lastCreatedTicket, setLastCreatedTicket] = useState<Ticket | null>(null);
   const [editingTicket, setEditingTicket] = useState<Ticket | null>(null);
   const [showEditDialog, setShowEditDialog] = useState(false);
+  const { isAdmin } = useAuth();
 
   const {
     tickets,
@@ -46,15 +49,19 @@ const Index = () => {
     if (lastCreatedTicket?.type === 'error') {
       setEditingTicket(lastCreatedTicket);
       setShowEditDialog(true);
-    } else {
-      // Go to approvals to see the new draft
+    } else if (isAdmin) {
+      // Go to approvals to see the new draft (only for admins)
       setActiveView('approvals');
       setViewState('approvals');
+    } else {
+      // Regular users go to tracking
+      setActiveView('table');
+      setViewState('table');
     }
     setLastCreatedTicket(null);
   };
 
-  const handleViewChange = (view: 'form' | 'table' | 'approvals') => {
+  const handleViewChange = (view: 'form' | 'table' | 'approvals' | 'settings') => {
     setActiveView(view);
     setViewState(view);
     setLastCreatedTicket(null);
@@ -153,7 +160,7 @@ const Index = () => {
             </motion.div>
           )}
 
-          {viewState === 'approvals' && (
+          {viewState === 'approvals' && isAdmin && (
             <motion.div
               key="approvals"
               initial={{ opacity: 0, y: 20 }}
@@ -169,6 +176,10 @@ const Index = () => {
                 onDelete={deleteTicket}
               />
             </motion.div>
+          )}
+
+          {viewState === 'settings' && (
+            <Settings />
           )}
 
           {viewState === 'table' && (
