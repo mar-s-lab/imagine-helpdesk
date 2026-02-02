@@ -1,11 +1,26 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
-};
+// Allowed origins for CORS - restrict to application domains
+const allowedOrigins = [
+  'https://imagine-helpdesk.lovable.app',
+  'https://id-preview--1e7cb785-cbf5-4770-9bb4-7bb5950ff6b9.lovable.app',
+];
+
+function getCorsHeaders(origin: string | null): Record<string, string> {
+  const allowedOrigin = origin && allowedOrigins.some(o => origin.startsWith(o.replace(/\.lovable\.app$/, ''))) 
+    ? origin 
+    : allowedOrigins[0];
+  
+  return {
+    "Access-Control-Allow-Origin": allowedOrigin,
+    "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
+  };
+}
 
 serve(async (req) => {
+  const origin = req.headers.get("origin");
+  const corsHeaders = getCorsHeaders(origin);
+
   // Handle CORS preflight
   if (req.method === "OPTIONS") {
     return new Response("ok", { headers: corsHeaders });
@@ -27,11 +42,16 @@ serve(async (req) => {
     const url = new URL(req.url);
     const returnUrl = url.searchParams.get("returnUrl") || "/";
     
+    // Validate returnUrl to prevent open redirects - only allow relative paths
+    const sanitizedReturnUrl = returnUrl.startsWith("/") && !returnUrl.startsWith("//") 
+      ? returnUrl 
+      : "/";
+    
     // Generate a random state for CSRF protection
     const state = crypto.randomUUID();
     
     // Store state and returnUrl in a cookie-like format encoded in state
-    const stateData = btoa(JSON.stringify({ state, returnUrl }));
+    const stateData = btoa(JSON.stringify({ state, returnUrl: sanitizedReturnUrl }));
 
     // Build the Microsoft OAuth authorization URL
     const authUrl = new URL(`https://login.microsoftonline.com/${tenantId}/oauth2/v2.0/authorize`);
@@ -42,7 +62,7 @@ serve(async (req) => {
     authUrl.searchParams.set("response_mode", "query");
     authUrl.searchParams.set("state", stateData);
 
-    console.log("Redirecting to Microsoft OAuth:", authUrl.toString());
+    console.log("Redirecting to Microsoft OAuth");
 
     return new Response(JSON.stringify({ url: authUrl.toString() }), {
       status: 200,
@@ -50,10 +70,10 @@ serve(async (req) => {
     });
   } catch (error: unknown) {
     console.error("Error in microsoft-auth:", error);
-    const errorMessage = error instanceof Error ? error.message : "Unknown error";
+    const errorMessage = "Authentication initialization failed";
     return new Response(
       JSON.stringify({ error: errorMessage }),
-      { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      { status: 500, headers: { ...getCorsHeaders(req.headers.get("origin")), "Content-Type": "application/json" } }
     );
   }
 });

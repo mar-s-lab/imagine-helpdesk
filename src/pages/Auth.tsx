@@ -185,7 +185,7 @@ export default function Auth() {
         throw new Error('No se recibió URL de autenticación');
       }
     } catch (error) {
-      console.error('Microsoft login error:', error);
+      if (import.meta.env.DEV) console.error('Microsoft login error:', error);
       toast({
         title: 'Error',
         description: error instanceof Error ? error.message : 'Error al iniciar sesión con Microsoft',
