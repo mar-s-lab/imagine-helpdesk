@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { z } from 'zod';
 import { motion } from 'framer-motion';
 import { Ticket, Mail, Lock, User, Loader2 } from 'lucide-react';
@@ -11,6 +11,7 @@ import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useToast } from '@/hooks/use-toast';
+import { Separator } from '@/components/ui/separator';
 
 const emailSchema = z.string().email('Email inválido');
 const passwordSchema = z.string().min(6, 'La contraseña debe tener al menos 6 caracteres');
@@ -19,7 +20,9 @@ export default function Auth() {
   const navigate = useNavigate();
   const { user, isLoading } = useAuth();
   const { toast } = useToast();
+  const [searchParams] = useSearchParams();
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isMicrosoftLoading, setIsMicrosoftLoading] = useState(false);
   const [activeTab, setActiveTab] = useState<'login' | 'signup'>('login');
 
   // Form state
@@ -27,6 +30,18 @@ export default function Auth() {
   const [password, setPassword] = useState('');
   const [fullName, setFullName] = useState('');
   const [errors, setErrors] = useState<{ email?: string; password?: string; fullName?: string }>({});
+
+  // Check for error in URL params (from OAuth callback)
+  useEffect(() => {
+    const error = searchParams.get('error');
+    if (error) {
+      toast({
+        title: 'Error de autenticación',
+        description: decodeURIComponent(error),
+        variant: 'destructive',
+      });
+    }
+  }, [searchParams, toast]);
 
   // Redirect if already logged in
   useEffect(() => {
@@ -144,6 +159,33 @@ export default function Auth() {
     }
   };
 
+  const handleMicrosoftLogin = async () => {
+    setIsMicrosoftLoading(true);
+    try {
+      const response = await supabase.functions.invoke('microsoft-auth', {
+        body: { returnUrl: '/' },
+      });
+
+      if (response.error) {
+        throw new Error(response.error.message || 'Error al iniciar SSO');
+      }
+
+      if (response.data?.url) {
+        window.location.href = response.data.url;
+      } else {
+        throw new Error('No se recibió URL de autenticación');
+      }
+    } catch (error) {
+      console.error('Microsoft login error:', error);
+      toast({
+        title: 'Error',
+        description: error instanceof Error ? error.message : 'Error al iniciar sesión con Microsoft',
+        variant: 'destructive',
+      });
+      setIsMicrosoftLoading(false);
+    }
+  };
+
   if (isLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
@@ -234,6 +276,38 @@ export default function Auth() {
                       </>
                     ) : (
                       'Iniciar sesión'
+                    )}
+                  </Button>
+
+                  <div className="relative my-4">
+                    <Separator />
+                    <span className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 bg-card px-2 text-xs text-muted-foreground">
+                      o continuar con
+                    </span>
+                  </div>
+
+                  <Button
+                    type="button"
+                    variant="outline"
+                    className="w-full"
+                    onClick={handleMicrosoftLogin}
+                    disabled={isMicrosoftLoading}
+                  >
+                    {isMicrosoftLoading ? (
+                      <>
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        Conectando...
+                      </>
+                    ) : (
+                      <>
+                        <svg className="mr-2 h-4 w-4" viewBox="0 0 21 21" fill="none" xmlns="http://www.w3.org/2000/svg">
+                          <rect x="1" y="1" width="9" height="9" fill="#F25022"/>
+                          <rect x="11" y="1" width="9" height="9" fill="#7FBA00"/>
+                          <rect x="1" y="11" width="9" height="9" fill="#00A4EF"/>
+                          <rect x="11" y="11" width="9" height="9" fill="#FFB900"/>
+                        </svg>
+                        Microsoft 365
+                      </>
                     )}
                   </Button>
                 </form>

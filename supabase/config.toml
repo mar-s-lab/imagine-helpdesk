@@ -1,1 +1,7 @@
 project_id = "wyiwurjskmtdcwfakels"
+
+[functions.microsoft-auth]
+verify_jwt = false
+
+[functions.microsoft-callback]
+verify_jwt = false
