@@ -18,7 +18,8 @@ La integración actual con Basecamp funciona, pero tiene varias áreas de mejora
 | 2.3 - Link a card de Basecamp | ✅ Completado | Link en preview dialog |
 | 3.1 - Extraer CORS a _shared/ | ✅ Completado | `_shared/cors.ts` creado |
 | 3.2 - Logging estructurado | ✅ Completado | JSON logs con contexto |
-| 4 - Funcionalidades adicionales | 🔲 Pendiente | Logs, desconectar |
+| 4.1 - Tabla logs de sincronización | ✅ Completado | `basecamp_sync_log` creada |
+| 4.2 - Botón desconectar Basecamp | ✅ Completado | Edge function + UI en Settings |
 
 ---
 

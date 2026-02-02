@@ -219,6 +219,7 @@ export function useTickets() {
     try {
       const { data, error } = await supabase.functions.invoke('basecamp-sync', {
         body: {
+          ticketId: ticket.id,
           nomenclature: ticket.nomenclature,
           description: ticket.description,
           module: ticket.module,

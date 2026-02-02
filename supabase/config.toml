@@ -14,3 +14,6 @@ verify_jwt = false
 
 [functions.basecamp-sync]
 verify_jwt = false
+
+[functions.basecamp-disconnect]
+verify_jwt = false

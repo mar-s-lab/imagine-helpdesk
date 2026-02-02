@@ -10,6 +10,7 @@ import {
 } from "../_shared/cors.ts";
 
 interface TicketData {
+  ticketId?: string;
   nomenclature: string;
   description: string;
   module: string;
@@ -246,6 +247,18 @@ serve(async (req) => {
       cardUrl: cardData.app_url,
       userId: user.id,
     });
+
+    // Log successful sync to database
+    await supabase
+      .from('basecamp_sync_log')
+      .insert({
+        ticket_id: body.ticketId || null,
+        action: 'create',
+        status: 'success',
+        basecamp_card_id: String(cardData.id),
+        basecamp_response: cardData,
+        created_by: user.id,
+      });
 
     return createJsonResponse(
       { 

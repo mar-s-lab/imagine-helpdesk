@@ -14,6 +14,50 @@ export type Database = {
   }
   public: {
     Tables: {
+      basecamp_sync_log: {
+        Row: {
+          action: string
+          basecamp_card_id: string | null
+          basecamp_response: Json | null
+          created_at: string
+          created_by: string | null
+          error_message: string | null
+          id: string
+          status: string
+          ticket_id: string | null
+        }
+        Insert: {
+          action: string
+          basecamp_card_id?: string | null
+          basecamp_response?: Json | null
+          created_at?: string
+          created_by?: string | null
+          error_message?: string | null
+          id?: string
+          status: string
+          ticket_id?: string | null
+        }
+        Update: {
+          action?: string
+          basecamp_card_id?: string | null
+          basecamp_response?: Json | null
+          created_at?: string
+          created_by?: string | null
+          error_message?: string | null
+          id?: string
+          status?: string
+          ticket_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "basecamp_sync_log_ticket_id_fkey"
+            columns: ["ticket_id"]
+            isOneToOne: false
+            referencedRelation: "tickets"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       basecamp_tokens: {
         Row: {
           access_token: string
