@@ -1,12 +1,90 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+// Allowed origins for CORS - restrict to application domains
+const allowedOrigins = [
+  'https://imagine-helpdesk.lovable.app',
+  'https://id-preview--1e7cb785-cbf5-4770-9bb4-7bb5950ff6b9.lovable.app',
+];
+
+function getCorsHeaders(origin: string | null): Record<string, string> {
+  const allowedOrigin = origin && allowedOrigins.some(o => origin.startsWith(o.replace(/\.lovable\.app$/, ''))) 
+    ? origin 
+    : allowedOrigins[0];
+  
+  return {
+    "Access-Control-Allow-Origin": allowedOrigin,
+    "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
+  };
+}
+
+// Map OAuth error codes to safe, predefined error messages
+const ERROR_MESSAGES: Record<string, string> = {
+  "access_denied": "access_denied",
+  "consent_required": "consent_required",
+  "interaction_required": "interaction_required",
+  "invalid_request": "invalid_request",
+  "server_error": "server_error",
+  "temporarily_unavailable": "temporarily_unavailable",
 };
 
+function getSafeErrorCode(error: string | null): string {
+  if (!error) return "unknown_error";
+  return ERROR_MESSAGES[error] || "oauth_failed";
+}
+
+// Validate state parameter format and structure
+function validateState(stateParam: string): { isValid: boolean; returnUrl: string } {
+  try {
+    // Check reasonable length (base64 encoded JSON shouldn't be too long)
+    if (stateParam.length > 500) {
+      return { isValid: false, returnUrl: "/" };
+    }
+
+    // Attempt to decode and parse
+    const decoded = atob(stateParam);
+    const stateData = JSON.parse(decoded);
+
+    // Verify expected structure
+    if (typeof stateData !== 'object' || stateData === null) {
+      return { isValid: false, returnUrl: "/" };
+    }
+
+    // Verify state contains a UUID-like value
+    if (typeof stateData.state !== 'string' || !/^[0-9a-f-]{36}$/i.test(stateData.state)) {
+      return { isValid: false, returnUrl: "/" };
+    }
+
+    // Validate and sanitize returnUrl - only allow relative paths
+    let returnUrl = "/";
+    if (typeof stateData.returnUrl === 'string') {
+      // Only allow paths that start with / and don't start with // (protocol-relative URLs)
+      if (stateData.returnUrl.startsWith("/") && !stateData.returnUrl.startsWith("//")) {
+        // Further sanitize: remove any potentially dangerous characters
+        returnUrl = stateData.returnUrl.replace(/[<>"']/g, '');
+      }
+    }
+
+    return { isValid: true, returnUrl };
+  } catch {
+    return { isValid: false, returnUrl: "/" };
+  }
+}
+
+// Validate OAuth authorization code format
+function isValidAuthCode(code: string): boolean {
+  // OAuth codes are typically alphanumeric with some special chars, reasonable length
+  if (!code || code.length < 10 || code.length > 2000) {
+    return false;
+  }
+  // Allow alphanumeric, dots, underscores, hyphens, and some special chars common in OAuth codes
+  return /^[a-zA-Z0-9._-]+$/.test(code);
+}
+
 serve(async (req) => {
+  const origin = req.headers.get("origin");
+  const corsHeaders = getCorsHeaders(origin);
+
   // Handle CORS preflight
   if (req.method === "OPTIONS") {
     return new Response("ok", { headers: corsHeaders });
@@ -28,15 +106,15 @@ serve(async (req) => {
     const code = url.searchParams.get("code");
     const stateParam = url.searchParams.get("state");
     const error = url.searchParams.get("error");
-    const errorDescription = url.searchParams.get("error_description");
 
     // Get app base URL from environment or derive from Supabase URL
     const appBaseUrl = Deno.env.get("APP_BASE_URL") || supabaseUrl.replace('.supabase.co', '.lovable.app');
 
-    // Handle OAuth errors
+    // Handle OAuth errors - use safe error codes only
     if (error) {
-      console.error("OAuth error:", error, errorDescription);
-      return Response.redirect(`${appBaseUrl}/auth?error=${encodeURIComponent(errorDescription || error)}`, 302);
+      const safeErrorCode = getSafeErrorCode(error);
+      console.error("OAuth error:", safeErrorCode);
+      return Response.redirect(`${appBaseUrl}/auth?error=${safeErrorCode}`, 302);
     }
 
     if (!code || !stateParam) {
@@ -44,13 +122,17 @@ serve(async (req) => {
       return Response.redirect(`${appBaseUrl}/auth?error=missing_params`, 302);
     }
 
-    // Decode state to get returnUrl
-    let returnUrl = "/";
-    try {
-      const stateData = JSON.parse(atob(stateParam));
-      returnUrl = stateData.returnUrl || "/";
-    } catch (e) {
-      console.error("Error decoding state:", e);
+    // Validate authorization code format
+    if (!isValidAuthCode(code)) {
+      console.error("Invalid authorization code format");
+      return Response.redirect(`${appBaseUrl}/auth?error=invalid_code`, 302);
+    }
+
+    // Validate and decode state parameter
+    const { isValid, returnUrl } = validateState(stateParam);
+    if (!isValid) {
+      console.error("Invalid state parameter");
+      return Response.redirect(`${appBaseUrl}/auth?error=invalid_state`, 302);
     }
 
     // Exchange code for tokens
@@ -71,8 +153,7 @@ serve(async (req) => {
     });
 
     if (!tokenResponse.ok) {
-      const errorText = await tokenResponse.text();
-      console.error("Token exchange failed:", errorText);
+      console.error("Token exchange failed");
       return Response.redirect(`${appBaseUrl}/auth?error=token_exchange_failed`, 302);
     }
 
@@ -87,13 +168,12 @@ serve(async (req) => {
     });
 
     if (!userResponse.ok) {
-      const errorText = await userResponse.text();
-      console.error("Failed to get user info:", errorText);
+      console.error("Failed to get user info");
       return Response.redirect(`${appBaseUrl}/auth?error=user_info_failed`, 302);
     }
 
     const microsoftUser = await userResponse.json();
-    console.log("Microsoft user info:", { id: microsoftUser.id, email: microsoftUser.mail || microsoftUser.userPrincipalName });
+    console.log("Microsoft user authenticated:", microsoftUser.id?.substring(0, 8) + "...");
 
     // Create Supabase admin client
     const supabase = createClient(supabaseUrl, supabaseServiceKey, {
@@ -110,7 +190,7 @@ serve(async (req) => {
     const { data: existingUsers, error: listError } = await supabase.auth.admin.listUsers();
     
     if (listError) {
-      console.error("Error listing users:", listError);
+      console.error("Error listing users");
       return Response.redirect(`${appBaseUrl}/auth?error=database_error`, 302);
     }
 
@@ -127,7 +207,7 @@ serve(async (req) => {
           provider: "microsoft",
         },
       });
-      console.log("Updated existing user:", userId);
+      console.log("Updated existing user");
     } else {
       // Create new user with a random password (they'll use SSO to login)
       const randomPassword = crypto.randomUUID() + crypto.randomUUID();
@@ -143,12 +223,12 @@ serve(async (req) => {
       });
 
       if (createError) {
-        console.error("Error creating user:", createError);
+        console.error("Error creating user");
         return Response.redirect(`${appBaseUrl}/auth?error=user_creation_failed`, 302);
       }
 
       userId = newUser.user.id;
-      console.log("Created new user:", userId);
+      console.log("Created new user");
     }
 
     // Generate a session for the user using a magic link token approach
@@ -161,7 +241,7 @@ serve(async (req) => {
     });
 
     if (sessionError) {
-      console.error("Error generating session link:", sessionError);
+      console.error("Error generating session link");
       return Response.redirect(`${appBaseUrl}/auth?error=session_error`, 302);
     }
 
@@ -173,11 +253,11 @@ serve(async (req) => {
     // Redirect to the app with the magic link token
     const redirectUrl = `${appBaseUrl}/auth/callback?token=${token}&type=${type}&redirect_to=${encodeURIComponent(returnUrl)}`;
 
-    console.log("Redirecting to app:", redirectUrl);
+    console.log("OAuth flow completed successfully");
     return Response.redirect(redirectUrl, 302);
 
   } catch (error) {
-    console.error("Error in microsoft-callback:", error);
+    console.error("Error in microsoft-callback");
     const supabaseUrl = Deno.env.get("SUPABASE_URL") || "";
     const appBaseUrl = Deno.env.get("APP_BASE_URL") || supabaseUrl.replace('.supabase.co', '.lovable.app');
     return Response.redirect(`${appBaseUrl}/auth?error=internal_error`, 302);

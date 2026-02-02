@@ -35,7 +35,7 @@ export default function AuthCallback() {
         });
 
         if (verifyError) {
-          console.error('Verification error:', verifyError);
+          if (import.meta.env.DEV) console.error('Verification error:', verifyError);
           setError(verifyError.message);
           setTimeout(() => navigate('/auth'), 3000);
           return;
@@ -44,7 +44,7 @@ export default function AuthCallback() {
         // Successfully authenticated, redirect to the intended destination
         navigate(redirectTo);
       } catch (err) {
-        console.error('Callback error:', err);
+        if (import.meta.env.DEV) console.error('Callback error:', err);
         setError('Authentication failed');
         setTimeout(() => navigate('/auth'), 3000);
       }
