@@ -30,6 +30,78 @@ interface TicketData {
   };
 }
 
+// Refresh token if expired
+async function refreshTokenIfNeeded(
+  tokenData: { access_token: string; refresh_token: string; expires_at: string },
+  supabaseUrl: string,
+  supabaseServiceKey: string
+): Promise<string | null> {
+  if (new Date(tokenData.expires_at) >= new Date()) {
+    return tokenData.access_token;
+  }
+
+  console.log("Token expired, refreshing...");
+  
+  const clientId = Deno.env.get("BASECAMP_CLIENT_ID")?.trim();
+  const clientSecret = Deno.env.get("BASECAMP_CLIENT_SECRET")?.trim();
+  
+  if (!clientId || !clientSecret) {
+    console.error("Missing Basecamp OAuth credentials");
+    return null;
+  }
+
+  const refreshResponse = await fetch("https://launchpad.37signals.com/authorization/token", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/x-www-form-urlencoded",
+    },
+    body: new URLSearchParams({
+      type: "refresh",
+      client_id: clientId,
+      client_secret: clientSecret,
+      refresh_token: tokenData.refresh_token,
+    }),
+  });
+
+  if (!refreshResponse.ok) {
+    console.error("Token refresh failed:", refreshResponse.status);
+    return null;
+  }
+
+  const newTokenData = await refreshResponse.json();
+  
+  // Update stored token using a new client
+  const supabase = createClient(supabaseUrl, supabaseServiceKey);
+  await supabase
+    .from('basecamp_tokens')
+    .update({
+      access_token: newTokenData.access_token,
+      refresh_token: newTokenData.refresh_token || tokenData.refresh_token,
+      expires_at: new Date(Date.now() + (newTokenData.expires_in || 1209600) * 1000).toISOString(),
+      updated_at: new Date().toISOString(),
+    })
+    .eq('id', 'system');
+
+  return newTokenData.access_token;
+}
+
+// Build card content from ticket data
+function buildCardContent(body: TicketData): string {
+  return `
+<strong>Necesidad:</strong>
+${body.formData.need}
+
+<strong>Flujo deseado:</strong>
+${body.formData.desiredFlow}
+
+<strong>Contexto:</strong>
+${body.formData.context}
+
+---
+<em>Módulo: ${body.module} | Tipo: ${body.type}</em>
+  `.trim();
+}
+
 serve(async (req) => {
   const origin = req.headers.get("origin");
   const corsHeaders = getCorsHeaders(origin);
@@ -52,7 +124,7 @@ serve(async (req) => {
     const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
     const accountId = Deno.env.get("BASECAMP_ACCOUNT_ID")?.trim();
     const projectId = Deno.env.get("BASECAMP_PROJECT_ID")?.trim();
-    const todolistId = Deno.env.get("BASECAMP_TODOLIST_ID")?.trim();
+    const columnId = Deno.env.get("BASECAMP_COLUMN_ID")?.trim();
 
     if (!supabaseUrl || !supabaseServiceKey) {
       console.error("Missing Supabase configuration");
@@ -62,10 +134,10 @@ serve(async (req) => {
       );
     }
 
-    if (!accountId || !projectId || !todolistId) {
+    if (!accountId || !projectId || !columnId) {
       console.error("Missing Basecamp project configuration");
       return new Response(
-        JSON.stringify({ error: "Basecamp project not configured" }),
+        JSON.stringify({ error: "Basecamp project not configured. Please set BASECAMP_ACCOUNT_ID, BASECAMP_PROJECT_ID, and BASECAMP_COLUMN_ID." }),
         { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
@@ -97,82 +169,26 @@ serve(async (req) => {
       );
     }
 
-    let accessToken = tokenData.access_token;
-
-    // Check if token is expired and refresh if needed
-    if (new Date(tokenData.expires_at) < new Date()) {
-      console.log("Token expired, refreshing...");
-      
-      const clientId = Deno.env.get("BASECAMP_CLIENT_ID")?.trim();
-      const clientSecret = Deno.env.get("BASECAMP_CLIENT_SECRET")?.trim();
-      
-      if (!clientId || !clientSecret) {
-        return new Response(
-          JSON.stringify({ error: "Basecamp OAuth not configured" }),
-          { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-        );
-      }
-
-      const refreshResponse = await fetch("https://launchpad.37signals.com/authorization/token", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/x-www-form-urlencoded",
-        },
-        body: new URLSearchParams({
-          type: "refresh",
-          client_id: clientId,
-          client_secret: clientSecret,
-          refresh_token: tokenData.refresh_token,
-        }),
-      });
-
-      if (!refreshResponse.ok) {
-        console.error("Token refresh failed:", refreshResponse.status);
-        return new Response(
-          JSON.stringify({ error: "Basecamp session expired. Please reconnect in Settings." }),
-          { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-        );
-      }
-
-      const newTokenData = await refreshResponse.json();
-      accessToken = newTokenData.access_token;
-
-      // Update stored token
-      await supabase
-        .from('basecamp_tokens')
-        .update({
-          access_token: newTokenData.access_token,
-          refresh_token: newTokenData.refresh_token || tokenData.refresh_token,
-          expires_at: new Date(Date.now() + (newTokenData.expires_in || 1209600) * 1000).toISOString(),
-          updated_at: new Date().toISOString(),
-        })
-        .eq('id', 'system');
+    // Refresh token if needed
+    const accessToken = await refreshTokenIfNeeded(tokenData, supabaseUrl, supabaseServiceKey);
+    
+    if (!accessToken) {
+      return new Response(
+        JSON.stringify({ error: "Basecamp session expired. Please reconnect in Settings." }),
+        { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
     }
 
-    // Build todo content with ticket details
-    const todoContent = `
-<strong>${body.nomenclature}</strong>
+    // Build card content with ticket details
+    const cardContent = buildCardContent(body);
 
-<strong>Necesidad:</strong>
-${body.formData.need}
-
-<strong>Flujo deseado:</strong>
-${body.formData.desiredFlow}
-
-<strong>Contexto:</strong>
-${body.formData.context}
-
----
-<em>Módulo: ${body.module} | Tipo: ${body.type}</em>
-    `.trim();
-
-    // Create todo in Basecamp
-    // API: POST /buckets/{project_id}/todolists/{todolist_id}/todos.json
-    const basecampApiUrl = `https://3.basecampapi.com/${accountId}/buckets/${projectId}/todolists/${todolistId}/todos.json`;
+    // Create Card in Basecamp Card Table
+    // API: POST /buckets/{project_id}/card_tables/lists/{column_id}/cards.json
+    const basecampApiUrl = `https://3.basecampapi.com/${accountId}/buckets/${projectId}/card_tables/lists/${columnId}/cards.json`;
     
-    console.log("Creating todo in Basecamp:", basecampApiUrl);
+    console.log("Creating card in Basecamp:", basecampApiUrl);
 
-    const todoResponse = await fetch(basecampApiUrl, {
+    const cardResponse = await fetch(basecampApiUrl, {
       method: "POST",
       headers: {
         "Authorization": `Bearer ${accessToken}`,
@@ -180,18 +196,18 @@ ${body.formData.context}
         "User-Agent": "Helpdesk App (support@company.com)",
       },
       body: JSON.stringify({
-        content: body.nomenclature,
-        description: todoContent,
+        title: body.nomenclature,
+        content: cardContent,
         notify: true,
       }),
     });
 
-    if (!todoResponse.ok) {
-      const errorText = await todoResponse.text();
-      console.error("Basecamp API error:", todoResponse.status, errorText);
+    if (!cardResponse.ok) {
+      const errorText = await cardResponse.text();
+      console.error("Basecamp API error:", cardResponse.status, errorText);
       
       // Handle rate limiting
-      if (todoResponse.status === 429) {
+      if (cardResponse.status === 429) {
         return new Response(
           JSON.stringify({ error: "Basecamp rate limit exceeded. Please try again later." }),
           { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } }
@@ -199,19 +215,19 @@ ${body.formData.context}
       }
       
       return new Response(
-        JSON.stringify({ error: "Failed to create todo in Basecamp" }),
+        JSON.stringify({ error: "Failed to create card in Basecamp" }),
         { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
-    const todoData = await todoResponse.json();
-    console.log("Successfully created Basecamp todo:", todoData.id);
+    const cardData = await cardResponse.json();
+    console.log("Successfully created Basecamp card:", cardData.id);
 
     return new Response(
       JSON.stringify({ 
         success: true, 
-        todoId: todoData.id,
-        todoUrl: todoData.app_url,
+        cardId: cardData.id,
+        cardUrl: cardData.app_url,
       }),
       { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
