@@ -13,9 +13,9 @@ serve(async (req) => {
   }
 
   try {
-    const clientId = Deno.env.get("MICROSOFT_CLIENT_ID");
-    const clientSecret = Deno.env.get("MICROSOFT_CLIENT_SECRET");
-    const tenantId = Deno.env.get("MICROSOFT_TENANT_ID");
+    const clientId = Deno.env.get("MICROSOFT_CLIENT_ID")?.trim();
+    const clientSecret = Deno.env.get("MICROSOFT_CLIENT_SECRET")?.trim();
+    const tenantId = Deno.env.get("MICROSOFT_TENANT_ID")?.trim();
     const supabaseUrl = Deno.env.get("SUPABASE_URL");
     const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
 
