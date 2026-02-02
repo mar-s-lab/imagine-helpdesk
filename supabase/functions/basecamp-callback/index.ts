@@ -1,38 +1,21 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-
-// Allowed origins for CORS - restrict to application domains
-const allowedOriginPatterns = [
-  /^https:\/\/imagine-helpdesk\.lovable\.app$/,
-  /^https:\/\/id-preview--[a-z0-9-]+\.lovable\.app$/,
-  /^https:\/\/[a-z0-9-]+\.lovableproject\.com$/,
-];
-
-function getCorsHeaders(origin: string | null): Record<string, string> {
-  const isAllowed = origin && allowedOriginPatterns.some(pattern => pattern.test(origin));
-  const allowedOrigin = isAllowed ? origin : 'https://imagine-helpdesk.lovable.app';
-  
-  return {
-    "Access-Control-Allow-Origin": allowedOrigin,
-    "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
-  };
-}
-
-// Determine the frontend URL based on request origin
-function getFrontendUrl(origin: string | null): string {
-  if (origin && allowedOriginPatterns.some(pattern => pattern.test(origin))) {
-    return origin;
-  }
-  return 'https://imagine-helpdesk.lovable.app';
-}
+import {
+  getCorsHeaders,
+  createCorsPreflightResponse,
+  createRedirectResponse,
+  getFrontendUrl,
+  logInfo,
+  logError,
+  logWarn,
+} from "../_shared/cors.ts";
 
 serve(async (req) => {
   const origin = req.headers.get("origin") || req.headers.get("referer");
-  const corsHeaders = getCorsHeaders(origin);
 
   // Handle CORS preflight
   if (req.method === "OPTIONS") {
-    return new Response("ok", { headers: corsHeaders });
+    return createCorsPreflightResponse(origin);
   }
 
   try {
@@ -42,30 +25,23 @@ serve(async (req) => {
     const error = url.searchParams.get("error");
 
     // Determine frontend URL for redirects
-    let frontendUrl = 'https://imagine-helpdesk.lovable.app';
-    
-    // Try to extract origin from state or referer
-    if (origin) {
-      frontendUrl = getFrontendUrl(origin);
-    }
+    let frontendUrl = getFrontendUrl(origin);
 
     // Handle errors from Basecamp
     if (error) {
-      console.error("Basecamp OAuth error:", error);
-      const errorUrl = `${frontendUrl}/settings?error=${encodeURIComponent(error)}`;
-      return new Response(null, {
-        status: 302,
-        headers: { ...corsHeaders, "Location": errorUrl },
-      });
+      logError("basecamp_oauth_error", new Error(error));
+      return createRedirectResponse(
+        `${frontendUrl}/settings?error=${encodeURIComponent(error)}`,
+        origin
+      );
     }
 
     if (!code || !stateParam) {
-      console.error("Missing code or state parameter");
-      const errorUrl = `${frontendUrl}/settings?error=${encodeURIComponent("Missing authorization code")}`;
-      return new Response(null, {
-        status: 302,
-        headers: { ...corsHeaders, "Location": errorUrl },
-      });
+      logError("basecamp_callback_missing_params", new Error("Missing code or state"));
+      return createRedirectResponse(
+        `${frontendUrl}/settings?error=${encodeURIComponent("Missing authorization code")}`,
+        origin
+      );
     }
 
     // Validate and decode state
@@ -79,12 +55,11 @@ serve(async (req) => {
         throw new Error("Invalid state format");
       }
     } catch {
-      console.error("Invalid state parameter");
-      const errorUrl = `${frontendUrl}/settings?error=${encodeURIComponent("Invalid state parameter")}`;
-      return new Response(null, {
-        status: 302,
-        headers: { ...corsHeaders, "Location": errorUrl },
-      });
+      logError("basecamp_callback_invalid_state", new Error("Invalid state parameter"));
+      return createRedirectResponse(
+        `${frontendUrl}/settings?error=${encodeURIComponent("Invalid state parameter")}`,
+        origin
+      );
     }
 
     const clientId = Deno.env.get("BASECAMP_CLIENT_ID")?.trim();
@@ -93,16 +68,15 @@ serve(async (req) => {
     const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
 
     if (!clientId || !clientSecret || !supabaseUrl || !supabaseServiceKey) {
-      console.error("Missing Basecamp or Supabase configuration");
-      const errorUrl = `${frontendUrl}/settings?error=${encodeURIComponent("Server configuration error")}`;
-      return new Response(null, {
-        status: 302,
-        headers: { ...corsHeaders, "Location": errorUrl },
-      });
+      logError("basecamp_callback_config_error", new Error("Missing configuration"));
+      return createRedirectResponse(
+        `${frontendUrl}/settings?error=${encodeURIComponent("Server configuration error")}`,
+        origin
+      );
     }
 
     // Exchange code for access token
-    console.log("Exchanging code for Basecamp access token");
+    logInfo("basecamp_token_exchange_start", {});
     
     const tokenResponse = await fetch("https://launchpad.37signals.com/authorization/token", {
       method: "POST",
@@ -120,16 +94,17 @@ serve(async (req) => {
 
     if (!tokenResponse.ok) {
       const errorText = await tokenResponse.text();
-      console.error("Token exchange failed:", tokenResponse.status, errorText);
-      const errorUrl = `${frontendUrl}/settings?error=${encodeURIComponent("Failed to exchange authorization code")}`;
-      return new Response(null, {
-        status: 302,
-        headers: { ...corsHeaders, "Location": errorUrl },
+      logError("basecamp_token_exchange_failed", new Error(errorText), {
+        status: tokenResponse.status,
       });
+      return createRedirectResponse(
+        `${frontendUrl}/settings?error=${encodeURIComponent("Failed to exchange authorization code")}`,
+        origin
+      );
     }
 
     const tokenData = await tokenResponse.json();
-    console.log("Successfully obtained Basecamp access token");
+    logInfo("basecamp_token_exchange_success", {});
 
     // Get user authorization info to find their accounts
     const authInfoResponse = await fetch("https://launchpad.37signals.com/authorization.json", {
@@ -139,20 +114,18 @@ serve(async (req) => {
     });
 
     if (!authInfoResponse.ok) {
-      console.error("Failed to get authorization info:", authInfoResponse.status);
+      logWarn("basecamp_auth_info_failed", { status: authInfoResponse.status });
     }
 
     const authInfo = authInfoResponse.ok ? await authInfoResponse.json() : null;
 
-    // Store the token in database for the authenticated user
-    // For now, we'll store it as a system-wide token
+    // Store the token in database
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
     
-    // Upsert into a basecamp_tokens table (we'll need to create this)
     const { error: dbError } = await supabase
       .from('basecamp_tokens')
       .upsert({
-        id: 'system', // Single system-wide token
+        id: 'system',
         access_token: tokenData.access_token,
         refresh_token: tokenData.refresh_token,
         expires_at: new Date(Date.now() + (tokenData.expires_in || 1209600) * 1000).toISOString(),
@@ -162,30 +135,29 @@ serve(async (req) => {
       }, { onConflict: 'id' });
 
     if (dbError) {
-      console.error("Failed to store token:", dbError);
-      const errorUrl = `${frontendUrl}/settings?error=${encodeURIComponent("Failed to save Basecamp connection")}`;
-      return new Response(null, {
-        status: 302,
-        headers: { ...corsHeaders, "Location": errorUrl },
-      });
+      logError("basecamp_token_store_failed", dbError);
+      return createRedirectResponse(
+        `${frontendUrl}/settings?error=${encodeURIComponent("Failed to save Basecamp connection")}`,
+        origin
+      );
     }
 
-    console.log("Basecamp connection successful, redirecting to settings");
-
-    // Redirect back to settings with success
-    const successUrl = `${frontendUrl}/settings?basecamp=connected`;
-    return new Response(null, {
-      status: 302,
-      headers: { ...corsHeaders, "Location": successUrl },
+    logInfo("basecamp_connection_success", {
+      identity: authInfo?.identity?.email_address,
+      accountCount: authInfo?.accounts?.length || 0,
     });
+
+    return createRedirectResponse(
+      `${frontendUrl}/settings?basecamp=connected`,
+      origin
+    );
 
   } catch (error: unknown) {
-    console.error("Error in basecamp-callback:", error);
+    logError("basecamp_callback_exception", error);
     const frontendUrl = getFrontendUrl(origin);
-    const errorUrl = `${frontendUrl}/settings?error=${encodeURIComponent("Authentication failed")}`;
-    return new Response(null, {
-      status: 302,
-      headers: { ...getCorsHeaders(origin), "Location": errorUrl },
-    });
+    return createRedirectResponse(
+      `${frontendUrl}/settings?error=${encodeURIComponent("Authentication failed")}`,
+      origin
+    );
   }
 });
