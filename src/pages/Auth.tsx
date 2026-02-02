@@ -13,7 +13,18 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useToast } from '@/hooks/use-toast';
 import { Separator } from '@/components/ui/separator';
 
+// Allowed email domains for registration
+const ALLOWED_DOMAINS = ['finanzbutik.com', 'imagineapps.co'];
+
 const emailSchema = z.string().email('Email inválido').max(255, 'Email demasiado largo');
+const signupEmailSchema = z.string()
+  .email('Email inválido')
+  .max(255, 'Email demasiado largo')
+  .refine((email) => {
+    const domain = email.split('@')[1]?.toLowerCase();
+    return ALLOWED_DOMAINS.includes(domain);
+  }, `Solo se permiten cuentas de: ${ALLOWED_DOMAINS.join(', ')}`);
+
 const passwordSchema = z.string()
   .min(8, 'La contraseña debe tener al menos 8 caracteres')
   .max(128, 'La contraseña es demasiado larga')
@@ -29,7 +40,8 @@ export default function Auth() {
   const [searchParams] = useSearchParams();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isMicrosoftLoading, setIsMicrosoftLoading] = useState(false);
-  const [activeTab, setActiveTab] = useState<'login' | 'signup'>('login');
+  const [activeTab, setActiveTab] = useState<'login' | 'signup' | 'reset'>('login');
+  const [resetEmailSent, setResetEmailSent] = useState(false);
 
   // Form state
   const [email, setEmail] = useState('');
@@ -56,20 +68,31 @@ export default function Auth() {
     }
   }, [user, isLoading, navigate]);
 
-  const validateForm = (isSignup: boolean) => {
+  const validateForm = (mode: 'login' | 'signup' | 'reset') => {
     const newErrors: { email?: string; password?: string; fullName?: string } = {};
     
-    const emailResult = emailSchema.safeParse(email);
-    if (!emailResult.success) {
-      newErrors.email = emailResult.error.errors[0].message;
+    if (mode === 'signup') {
+      // Signup requires domain validation
+      const emailResult = signupEmailSchema.safeParse(email);
+      if (!emailResult.success) {
+        newErrors.email = emailResult.error.errors[0].message;
+      }
+    } else {
+      // Login and reset only need valid email format
+      const emailResult = emailSchema.safeParse(email);
+      if (!emailResult.success) {
+        newErrors.email = emailResult.error.errors[0].message;
+      }
     }
 
-    const passwordResult = passwordSchema.safeParse(password);
-    if (!passwordResult.success) {
-      newErrors.password = passwordResult.error.errors[0].message;
+    if (mode !== 'reset') {
+      const passwordResult = passwordSchema.safeParse(password);
+      if (!passwordResult.success) {
+        newErrors.password = passwordResult.error.errors[0].message;
+      }
     }
 
-    if (isSignup) {
+    if (mode === 'signup') {
       const nameResult = fullNameSchema.safeParse(fullName);
       if (!nameResult.success) {
         newErrors.fullName = nameResult.error.errors[0].message;
@@ -82,7 +105,7 @@ export default function Auth() {
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!validateForm(false)) return;
+    if (!validateForm('login')) return;
 
     setIsSubmitting(true);
     try {
@@ -125,7 +148,7 @@ export default function Auth() {
 
   const handleSignup = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!validateForm(true)) return;
+    if (!validateForm('signup')) return;
 
     setIsSubmitting(true);
     try {
@@ -161,6 +184,36 @@ export default function Auth() {
         toast({
           title: 'Registro exitoso',
           description: 'Revisa tu correo para confirmar tu cuenta',
+        });
+      }
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const handlePasswordReset = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!validateForm('reset')) return;
+
+    setIsSubmitting(true);
+    try {
+      const redirectUrl = `${window.location.origin}/auth`;
+      
+      const { error } = await supabase.auth.resetPasswordForEmail(email, {
+        redirectTo: redirectUrl,
+      });
+
+      if (error) {
+        toast({
+          title: 'Error',
+          description: error.message,
+          variant: 'destructive',
+        });
+      } else {
+        setResetEmailSent(true);
+        toast({
+          title: 'Correo enviado',
+          description: 'Revisa tu bandeja de entrada para restablecer tu contraseña',
         });
       }
     } finally {
@@ -233,10 +286,11 @@ export default function Auth() {
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as 'login' | 'signup')}>
-              <TabsList className="grid w-full grid-cols-2 mb-6">
+            <Tabs value={activeTab} onValueChange={(v) => { setActiveTab(v as 'login' | 'signup' | 'reset'); setResetEmailSent(false); setErrors({}); }}>
+              <TabsList className="grid w-full grid-cols-3 mb-6">
                 <TabsTrigger value="login">Iniciar sesión</TabsTrigger>
                 <TabsTrigger value="signup">Registrarse</TabsTrigger>
+                <TabsTrigger value="reset">Recuperar</TabsTrigger>
               </TabsList>
 
               <TabsContent value="login">
@@ -388,7 +442,80 @@ export default function Auth() {
                       'Crear cuenta'
                     )}
                   </Button>
+
+                  <p className="text-xs text-muted-foreground text-center mt-4">
+                    Solo se permiten cuentas de: {ALLOWED_DOMAINS.join(', ')}
+                  </p>
                 </form>
+              </TabsContent>
+
+              <TabsContent value="reset">
+                {resetEmailSent ? (
+                  <div className="text-center space-y-4 py-4">
+                    <div className="w-12 h-12 bg-primary/10 rounded-full flex items-center justify-center mx-auto">
+                      <Mail className="h-6 w-6 text-primary" />
+                    </div>
+                    <div>
+                      <p className="font-medium">Correo enviado</p>
+                      <p className="text-sm text-muted-foreground">
+                        Revisa tu bandeja de entrada y sigue las instrucciones para restablecer tu contraseña.
+                      </p>
+                    </div>
+                    <Button
+                      variant="outline"
+                      onClick={() => { setActiveTab('login'); setResetEmailSent(false); }}
+                      className="w-full"
+                    >
+                      Volver a iniciar sesión
+                    </Button>
+                  </div>
+                ) : (
+                  <form onSubmit={handlePasswordReset} className="space-y-4">
+                    <div className="text-center mb-4">
+                      <p className="text-sm text-muted-foreground">
+                        Ingresa tu email y te enviaremos un enlace para restablecer tu contraseña.
+                      </p>
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label htmlFor="reset-email">Email</Label>
+                      <div className="relative">
+                        <Mail className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                        <Input
+                          id="reset-email"
+                          type="email"
+                          placeholder="tu@email.com"
+                          value={email}
+                          onChange={(e) => setEmail(e.target.value)}
+                          className="pl-10"
+                        />
+                      </div>
+                      {errors.email && (
+                        <p className="text-sm text-destructive">{errors.email}</p>
+                      )}
+                    </div>
+
+                    <Button type="submit" className="w-full" disabled={isSubmitting}>
+                      {isSubmitting ? (
+                        <>
+                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                          Enviando...
+                        </>
+                      ) : (
+                        'Enviar enlace de recuperación'
+                      )}
+                    </Button>
+
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      onClick={() => setActiveTab('login')}
+                      className="w-full"
+                    >
+                      Volver a iniciar sesión
+                    </Button>
+                  </form>
+                )}
               </TabsContent>
             </Tabs>
           </CardContent>
