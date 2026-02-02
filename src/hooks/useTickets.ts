@@ -2,6 +2,7 @@ import { useState, useCallback } from 'react';
 import { Ticket, TicketFormData, TicketStatus, EmailNotification } from '@/types/ticket';
 import { classifyTicket, generateNomenclature, determineInitialStatus, detectModule, getCombinedText, getDescription } from '@/lib/ticketClassifier';
 import { toast } from 'sonner';
+import { supabase } from '@/integrations/supabase/client';
 
 let ticketSequence = 1;
 
@@ -63,16 +64,61 @@ export function useTickets() {
     return ticket;
   }, []);
 
-  // Approve ticket - moves to proper status and "sends to Basecamp"
+  // Sync ticket to Basecamp
+  const syncToBasecamp = useCallback(async (ticket: Ticket): Promise<boolean> => {
+    try {
+      const { data, error } = await supabase.functions.invoke('basecamp-sync', {
+        body: {
+          nomenclature: ticket.nomenclature,
+          description: ticket.description,
+          module: ticket.module,
+          type: ticket.type,
+          formData: {
+            need: ticket.formData.need,
+            desiredFlow: ticket.formData.desiredFlow,
+            context: ticket.formData.context,
+          },
+        },
+      });
+
+      if (error) {
+        console.error('Basecamp sync error:', error);
+        toast.error(`Error sincronizando con Basecamp: ${error.message}`);
+        return false;
+      }
+
+      if (data?.success) {
+        if (import.meta.env.DEV) {
+          console.log('Basecamp sync successful:', data);
+        }
+        return true;
+      }
+      
+      toast.error(data?.error || 'Error desconocido sincronizando con Basecamp');
+      return false;
+    } catch (err) {
+      console.error('Basecamp sync exception:', err);
+      toast.error('Error de conexión con Basecamp');
+      return false;
+    }
+  }, []);
+
+  // Approve ticket - moves to proper status and sends to Basecamp
   const approveTicket = useCallback(async (ticketId: string) => {
-    setTickets(prev => prev.map(ticket => {
-      if (ticket.id === ticketId && ticket.status === 'draft') {
-        const newStatus = determineInitialStatus(ticket.type);
+    const ticket = tickets.find(t => t.id === ticketId);
+    if (!ticket || ticket.status !== 'draft') return;
+
+    // Try to sync to Basecamp first
+    const synced = await syncToBasecamp(ticket);
+    
+    setTickets(prev => prev.map(t => {
+      if (t.id === ticketId && t.status === 'draft') {
+        const newStatus = determineInitialStatus(t.type);
         const updated = {
-          ...ticket,
+          ...t,
           status: newStatus,
           updatedAt: new Date(),
-          basecampSynced: true,
+          basecampSynced: synced,
         };
         
         // Send notifications after approval
@@ -83,11 +129,15 @@ export function useTickets() {
         
         return updated;
       }
-      return ticket;
+      return t;
     }));
     
-    toast.success('✅ Ticket aprobado y enviado a Basecamp');
-  }, []);
+    if (synced) {
+      toast.success('✅ Ticket aprobado y enviado a Basecamp');
+    } else {
+      toast.warning('⚠️ Ticket aprobado pero no se pudo sincronizar con Basecamp');
+    }
+  }, [tickets, syncToBasecamp]);
 
   // Reject ticket - marks as failed report
   const rejectTicket = useCallback((ticketId: string) => {
