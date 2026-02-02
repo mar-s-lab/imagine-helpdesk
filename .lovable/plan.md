@@ -1,10 +1,21 @@
 
-
 # Plan de Refactorización: Integración Basecamp
 
 ## Resumen Ejecutivo
 
 La integración actual con Basecamp funciona, pero tiene varias áreas de mejora en robustez, experiencia de usuario, y mantenibilidad. Este plan propone mejoras incrementales para convertirla en una integración de nivel producción.
+
+---
+
+## Progreso de Implementación
+
+| Fase | Estado | Notas |
+|------|--------|-------|
+| 1.1 - Crear tabla `tickets` | ✅ Completado | Tabla creada con RLS y triggers |
+| 1.2 - Migrar `useTickets` a React Query | ✅ Completado | Hook refactorizado |
+| 2 - UX de sincronización | 🔲 Pendiente | Estados de carga, retry, link Basecamp |
+| 3 - Refactorización edge functions | 🔲 Pendiente | Extraer CORS compartido |
+| 4 - Funcionalidades adicionales | 🔲 Pendiente | Logs, desconectar |
 
 ---
 
@@ -17,6 +28,8 @@ La integración actual con Basecamp funciona, pero tiene varias áreas de mejora
 - Manejo de rate limiting de Basecamp
 - Validación de JWT manual (compatible con Lovable Cloud)
 - CORS headers restrictivos con whitelist
+- **✅ Persistencia de tickets en DB (Fase 1 completada)**
+- **✅ Tracking de cardId y cardUrl de Basecamp**
 
 ### Problemas Identificados
 
