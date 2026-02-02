@@ -104,13 +104,21 @@ export function useTickets() {
   }, []);
 
   // Approve ticket - moves to proper status and sends to Basecamp
+  // IMPORTANT: If Basecamp sync fails, ticket stays in draft for retry
   const approveTicket = useCallback(async (ticketId: string) => {
     const ticket = tickets.find(t => t.id === ticketId);
     if (!ticket || ticket.status !== 'draft') return;
 
-    // Try to sync to Basecamp first
+    // Try to sync to Basecamp first - this is required for approval
     const synced = await syncToBasecamp(ticket);
     
+    // If sync failed, keep ticket in draft status for retry
+    if (!synced) {
+      toast.error('❌ No se pudo enviar a Basecamp. El ticket permanece en Aprobaciones para reintentar.');
+      return;
+    }
+    
+    // Only update status if Basecamp sync was successful
     setTickets(prev => prev.map(t => {
       if (t.id === ticketId && t.status === 'draft') {
         const newStatus = determineInitialStatus(t.type);
@@ -118,7 +126,7 @@ export function useTickets() {
           ...t,
           status: newStatus,
           updatedAt: new Date(),
-          basecampSynced: synced,
+          basecampSynced: true,
         };
         
         // Send notifications after approval
@@ -132,11 +140,7 @@ export function useTickets() {
       return t;
     }));
     
-    if (synced) {
-      toast.success('✅ Ticket aprobado y enviado a Basecamp');
-    } else {
-      toast.warning('⚠️ Ticket aprobado pero no se pudo sincronizar con Basecamp');
-    }
+    toast.success('✅ Ticket aprobado y enviado a Basecamp');
   }, [tickets, syncToBasecamp]);
 
   // Reject ticket - marks as failed report
