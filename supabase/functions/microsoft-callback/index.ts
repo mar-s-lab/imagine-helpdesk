@@ -2,15 +2,15 @@ import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 // Allowed origins for CORS - restrict to application domains
-const allowedOrigins = [
-  'https://imagine-helpdesk.lovable.app',
-  'https://id-preview--1e7cb785-cbf5-4770-9bb4-7bb5950ff6b9.lovable.app',
+const allowedOriginPatterns = [
+  /^https:\/\/imagine-helpdesk\.lovable\.app$/,
+  /^https:\/\/id-preview--[a-z0-9-]+\.lovable\.app$/,
+  /^https:\/\/[a-z0-9-]+\.lovableproject\.com$/,
 ];
 
 function getCorsHeaders(origin: string | null): Record<string, string> {
-  const allowedOrigin = origin && allowedOrigins.some(o => origin.startsWith(o.replace(/\.lovable\.app$/, ''))) 
-    ? origin 
-    : allowedOrigins[0];
+  const isAllowed = origin && allowedOriginPatterns.some(pattern => pattern.test(origin));
+  const allowedOrigin = isAllowed ? origin : 'https://imagine-helpdesk.lovable.app';
   
   return {
     "Access-Control-Allow-Origin": allowedOrigin,
