@@ -16,7 +16,8 @@ La integración actual con Basecamp funciona, pero tiene varias áreas de mejora
 | 2.1 - Estados de sincronización en UI | ✅ Completado | Spinner, overlay durante sync |
 | 2.2 - Retry button para errores | ✅ Completado | Botón "Reintentar" visible |
 | 2.3 - Link a card de Basecamp | ✅ Completado | Link en preview dialog |
-| 3 - Refactorización edge functions | 🔲 Pendiente | Extraer CORS compartido |
+| 3.1 - Extraer CORS a _shared/ | ✅ Completado | `_shared/cors.ts` creado |
+| 3.2 - Logging estructurado | ✅ Completado | JSON logs con contexto |
 | 4 - Funcionalidades adicionales | 🔲 Pendiente | Logs, desconectar |
 
 ---
