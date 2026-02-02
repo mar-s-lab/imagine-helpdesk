@@ -12,8 +12,8 @@ serve(async (req) => {
   }
 
   try {
-    const clientId = Deno.env.get("MICROSOFT_CLIENT_ID");
-    const tenantId = Deno.env.get("MICROSOFT_TENANT_ID");
+    const clientId = Deno.env.get("MICROSOFT_CLIENT_ID")?.trim();
+    const tenantId = Deno.env.get("MICROSOFT_TENANT_ID")?.trim();
 
     if (!clientId || !tenantId) {
       console.error("Missing Microsoft OAuth configuration");
