@@ -30,15 +30,18 @@ serve(async (req) => {
     const error = url.searchParams.get("error");
     const errorDescription = url.searchParams.get("error_description");
 
+    // Get app base URL from environment or derive from Supabase URL
+    const appBaseUrl = Deno.env.get("APP_BASE_URL") || supabaseUrl.replace('.supabase.co', '.lovable.app');
+
     // Handle OAuth errors
     if (error) {
       console.error("OAuth error:", error, errorDescription);
-      return Response.redirect(`${supabaseUrl.replace('.supabase.co', '.lovable.app')}/auth?error=${encodeURIComponent(errorDescription || error)}`, 302);
+      return Response.redirect(`${appBaseUrl}/auth?error=${encodeURIComponent(errorDescription || error)}`, 302);
     }
 
     if (!code || !stateParam) {
       console.error("Missing code or state");
-      return Response.redirect(`${supabaseUrl.replace('.supabase.co', '.lovable.app')}/auth?error=missing_params`, 302);
+      return Response.redirect(`${appBaseUrl}/auth?error=missing_params`, 302);
     }
 
     // Decode state to get returnUrl
@@ -70,7 +73,7 @@ serve(async (req) => {
     if (!tokenResponse.ok) {
       const errorText = await tokenResponse.text();
       console.error("Token exchange failed:", errorText);
-      return Response.redirect(`${supabaseUrl.replace('.supabase.co', '.lovable.app')}/auth?error=token_exchange_failed`, 302);
+      return Response.redirect(`${appBaseUrl}/auth?error=token_exchange_failed`, 302);
     }
 
     const tokens = await tokenResponse.json();
@@ -86,7 +89,7 @@ serve(async (req) => {
     if (!userResponse.ok) {
       const errorText = await userResponse.text();
       console.error("Failed to get user info:", errorText);
-      return Response.redirect(`${supabaseUrl.replace('.supabase.co', '.lovable.app')}/auth?error=user_info_failed`, 302);
+      return Response.redirect(`${appBaseUrl}/auth?error=user_info_failed`, 302);
     }
 
     const microsoftUser = await userResponse.json();
@@ -108,7 +111,7 @@ serve(async (req) => {
     
     if (listError) {
       console.error("Error listing users:", listError);
-      return Response.redirect(`${supabaseUrl.replace('.supabase.co', '.lovable.app')}/auth?error=database_error`, 302);
+      return Response.redirect(`${appBaseUrl}/auth?error=database_error`, 302);
     }
 
     let userId: string;
@@ -141,7 +144,7 @@ serve(async (req) => {
 
       if (createError) {
         console.error("Error creating user:", createError);
-        return Response.redirect(`${supabaseUrl.replace('.supabase.co', '.lovable.app')}/auth?error=user_creation_failed`, 302);
+        return Response.redirect(`${appBaseUrl}/auth?error=user_creation_failed`, 302);
       }
 
       userId = newUser.user.id;
@@ -159,7 +162,7 @@ serve(async (req) => {
 
     if (sessionError) {
       console.error("Error generating session link:", sessionError);
-      return Response.redirect(`${supabaseUrl.replace('.supabase.co', '.lovable.app')}/auth?error=session_error`, 302);
+      return Response.redirect(`${appBaseUrl}/auth?error=session_error`, 302);
     }
 
     // Extract the token from the magic link and redirect
@@ -168,7 +171,6 @@ serve(async (req) => {
     const type = magicLinkUrl.searchParams.get("type");
 
     // Redirect to the app with the magic link token
-    const appBaseUrl = supabaseUrl.replace("wyiwurjskmtdcwfakels.supabase.co", "imagine-helpdesk.lovable.app");
     const redirectUrl = `${appBaseUrl}/auth/callback?token=${token}&type=${type}&redirect_to=${encodeURIComponent(returnUrl)}`;
 
     console.log("Redirecting to app:", redirectUrl);
@@ -177,6 +179,7 @@ serve(async (req) => {
   } catch (error) {
     console.error("Error in microsoft-callback:", error);
     const supabaseUrl = Deno.env.get("SUPABASE_URL") || "";
-    return Response.redirect(`${supabaseUrl.replace('.supabase.co', '.lovable.app')}/auth?error=internal_error`, 302);
+    const appBaseUrl = Deno.env.get("APP_BASE_URL") || supabaseUrl.replace('.supabase.co', '.lovable.app');
+    return Response.redirect(`${appBaseUrl}/auth?error=internal_error`, 302);
   }
 });
