@@ -13,7 +13,9 @@ La integración actual con Basecamp funciona, pero tiene varias áreas de mejora
 |------|--------|-------|
 | 1.1 - Crear tabla `tickets` | ✅ Completado | Tabla creada con RLS y triggers |
 | 1.2 - Migrar `useTickets` a React Query | ✅ Completado | Hook refactorizado |
-| 2 - UX de sincronización | 🔲 Pendiente | Estados de carga, retry, link Basecamp |
+| 2.1 - Estados de sincronización en UI | ✅ Completado | Spinner, overlay durante sync |
+| 2.2 - Retry button para errores | ✅ Completado | Botón "Reintentar" visible |
+| 2.3 - Link a card de Basecamp | ✅ Completado | Link en preview dialog |
 | 3 - Refactorización edge functions | 🔲 Pendiente | Extraer CORS compartido |
 | 4 - Funcionalidades adicionales | 🔲 Pendiente | Logs, desconectar |
 
