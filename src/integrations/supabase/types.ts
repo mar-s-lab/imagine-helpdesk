@@ -14,6 +14,39 @@ export type Database = {
   }
   public: {
     Tables: {
+      basecamp_tokens: {
+        Row: {
+          access_token: string
+          accounts: Json | null
+          created_at: string
+          expires_at: string
+          id: string
+          identity: Json | null
+          refresh_token: string | null
+          updated_at: string
+        }
+        Insert: {
+          access_token: string
+          accounts?: Json | null
+          created_at?: string
+          expires_at: string
+          id?: string
+          identity?: Json | null
+          refresh_token?: string | null
+          updated_at?: string
+        }
+        Update: {
+          access_token?: string
+          accounts?: Json | null
+          created_at?: string
+          expires_at?: string
+          id?: string
+          identity?: Json | null
+          refresh_token?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           created_at: string
