@@ -64,13 +64,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         .maybeSingle();
 
       if (error) {
-        console.error('Error fetching user role:', error);
+        if (import.meta.env.DEV) console.error('Error fetching user role:', error);
         setRole('user'); // Default to user
       } else {
         setRole((data?.role as AppRole) ?? 'user');
       }
     } catch (err) {
-      console.error('Error fetching role:', err);
+      if (import.meta.env.DEV) console.error('Error fetching role:', err);
       setRole('user');
     } finally {
       setIsLoading(false);
