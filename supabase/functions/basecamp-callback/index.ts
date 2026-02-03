@@ -11,6 +11,12 @@ import {
 } from "../_shared/cors.ts";
 
 serve(async (req) => {
+  // Log immediately to confirm function execution
+  logInfo("basecamp_callback_received", {
+    method: req.method,
+    url: req.url,
+  });
+
   const origin = req.headers.get("origin") || req.headers.get("referer");
 
   // Handle CORS preflight
@@ -23,6 +29,13 @@ serve(async (req) => {
     const code = url.searchParams.get("code");
     const stateParam = url.searchParams.get("state");
     const error = url.searchParams.get("error");
+
+    // Log all received parameters for debugging
+    logInfo("basecamp_callback_params", {
+      hasCode: !!code,
+      hasState: !!stateParam,
+      error: error || null,
+    });
 
     // Determine frontend URL for redirects
     let frontendUrl = getFrontendUrl(origin);
