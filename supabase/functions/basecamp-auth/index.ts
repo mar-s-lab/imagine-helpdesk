@@ -27,9 +27,17 @@ serve(async (req) => {
       );
     }
 
-    // Get the redirect URL from query params or use default
+    // Get the redirect URL from body (POST) or query params
     const url = new URL(req.url);
-    const returnUrl = url.searchParams.get("returnUrl") || "/";
+    let body: { returnUrl?: string } = {};
+    try {
+      if (req.method === "POST") {
+        body = await req.json();
+      }
+    } catch {
+      // Ignore JSON parse errors
+    }
+    const returnUrl = body.returnUrl || url.searchParams.get("returnUrl") || "/";
     
     // Validate returnUrl to prevent open redirects - only allow relative paths
     const sanitizedReturnUrl = returnUrl.startsWith("/") && !returnUrl.startsWith("//") 
