@@ -4,6 +4,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
+import { BasecampConnectionCard } from '@/components/BasecampConnectionCard';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 
@@ -164,6 +165,9 @@ export default function Settings() {
             )}
           </CardContent>
         </Card>
+
+        {/* Basecamp Connection Card */}
+        <BasecampConnectionCard />
       </div>
     </motion.div>
   );
