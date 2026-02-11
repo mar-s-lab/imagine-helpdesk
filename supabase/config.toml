@@ -1,19 +1,1 @@
 project_id = "wyiwurjskmtdcwfakels"
-
-[functions.microsoft-auth]
-verify_jwt = false
-
-[functions.microsoft-callback]
-verify_jwt = false
-
-[functions.basecamp-auth]
-verify_jwt = false
-
-[functions.basecamp-callback]
-verify_jwt = false
-
-[functions.basecamp-sync]
-verify_jwt = false
-
-[functions.basecamp-disconnect]
-verify_jwt = false

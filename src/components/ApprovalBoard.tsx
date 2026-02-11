@@ -13,9 +13,6 @@ import {
   Zap,
   Bug,
   Layers,
-  Loader2,
-  RefreshCw,
-  ExternalLink,
 } from 'lucide-react';
 
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -43,7 +40,7 @@ import { useLanguage } from '@/contexts/LanguageContext';
 
 interface ApprovalBoardProps {
   tickets: Ticket[];
-  onApprove: (ticketId: string) => Promise<void>;
+  onApprove: (ticketId: string) => void;
   onReject: (ticketId: string) => void;
   onEdit: (ticketId: string) => void;
   onDelete: (ticketId: string) => void;
@@ -63,7 +60,6 @@ export function ApprovalBoard({
     nomenclature: string;
   } | null>(null);
   const [previewTicket, setPreviewTicket] = useState<Ticket | null>(null);
-  const [syncingTicketId, setSyncingTicketId] = useState<string | null>(null);
 
   // Filter only draft tickets (pending approval)
   const draftTickets = tickets.filter(t => t.status === 'draft' && t.type !== 'error');
@@ -94,17 +90,12 @@ export function ApprovalBoard({
     }
   };
 
-  const handleConfirmAction = async () => {
+  const handleConfirmAction = () => {
     if (!confirmDialog) return;
     
     switch (confirmDialog.type) {
       case 'approve':
-        setSyncingTicketId(confirmDialog.ticketId);
-        try {
-          await onApprove(confirmDialog.ticketId);
-        } finally {
-          setSyncingTicketId(null);
-        }
+        onApprove(confirmDialog.ticketId);
         break;
       case 'reject':
         onReject(confirmDialog.ticketId);
@@ -114,15 +105,6 @@ export function ApprovalBoard({
         break;
     }
     setConfirmDialog(null);
-  };
-
-  const handleRetrySync = async (ticketId: string) => {
-    setSyncingTicketId(ticketId);
-    try {
-      await onApprove(ticketId);
-    } finally {
-      setSyncingTicketId(null);
-    }
   };
 
   if (draftTickets.length === 0) {
@@ -161,8 +143,6 @@ export function ApprovalBoard({
             {draftTickets.map((ticket) => {
               const typeConfig = TYPE_CONFIG[ticket.type];
               const agentLabel = getAgentLabel(ticket.classification.agent);
-              const isSyncing = syncingTicketId === ticket.id;
-              const hasSyncError = ticket.lastSyncError && (ticket.syncAttempts || 0) > 0;
               
               return (
                 <motion.div
@@ -174,23 +154,11 @@ export function ApprovalBoard({
                   transition={{ duration: 0.2 }}
                 >
                   <Card className={cn(
-                    'border-2 transition-shadow hover:shadow-lg relative',
+                    'border-2 transition-shadow hover:shadow-lg',
                     ticket.type === 'hot_fix' && 'border-red-300',
                     ticket.type === 'bug_report' && 'border-amber-300',
                     ticket.type === 'fixed_scope' && 'border-primary/50',
-                    hasSyncError && 'border-destructive/50 bg-destructive/5',
-                    isSyncing && 'opacity-75',
                   )}>
-                    {/* Syncing overlay */}
-                    {isSyncing && (
-                      <div className="absolute inset-0 bg-background/50 backdrop-blur-sm flex items-center justify-center z-10 rounded-lg">
-                        <div className="flex flex-col items-center gap-2">
-                          <Loader2 className="h-8 w-8 animate-spin text-primary" />
-                          <span className="text-sm font-medium">Enviando a Basecamp...</span>
-                        </div>
-                      </div>
-                    )}
-                    
                     <CardHeader className="pb-3">
                       <div className="flex items-start justify-between gap-2">
                         <div className="flex items-center gap-2">
@@ -204,7 +172,6 @@ export function ApprovalBoard({
                           size="icon"
                           className="h-8 w-8"
                           onClick={() => setPreviewTicket(ticket)}
-                          disabled={isSyncing}
                         >
                           <Eye className="h-4 w-4" />
                         </Button>
@@ -219,22 +186,6 @@ export function ApprovalBoard({
                       <p className="text-sm text-muted-foreground line-clamp-2">
                         {ticket.description}
                       </p>
-
-                      {/* Sync error indicator */}
-                      {hasSyncError && (
-                        <div className="flex items-start gap-2 text-xs bg-destructive/10 border border-destructive/30 rounded-md px-3 py-2">
-                          <AlertTriangle className="h-4 w-4 text-destructive flex-shrink-0 mt-0.5" />
-                          <div className="flex-1 min-w-0">
-                            <span className="font-medium text-destructive">Error de sincronización</span>
-                            <p className="text-muted-foreground truncate">
-                              {ticket.lastSyncError}
-                            </p>
-                            <p className="text-muted-foreground mt-1">
-                              Intentos: {ticket.syncAttempts}
-                            </p>
-                          </div>
-                        </div>
-                      )}
 
                       {/* Agent */}
                       {agentLabel && (
@@ -253,31 +204,18 @@ export function ApprovalBoard({
 
                       {/* Actions */}
                       <div className="flex items-center gap-2 pt-2 border-t">
-                        {hasSyncError ? (
-                          <Button
-                            size="sm"
-                            className="flex-1 gap-1.5"
-                            onClick={() => handleRetrySync(ticket.id)}
-                            disabled={isSyncing}
-                          >
-                            <RefreshCw className={cn("h-3.5 w-3.5", isSyncing && "animate-spin")} />
-                            Reintentar
-                          </Button>
-                        ) : (
-                          <Button
-                            size="sm"
-                            className="flex-1 gap-1.5"
-                            onClick={() => setConfirmDialog({
-                              type: 'approve',
-                              ticketId: ticket.id,
-                              nomenclature: ticket.nomenclature,
-                            })}
-                            disabled={isSyncing}
-                          >
-                            <Send className="h-3.5 w-3.5" />
-                            {t('approvalBoard.approve')}
-                          </Button>
-                        )}
+                        <Button
+                          size="sm"
+                          className="flex-1 gap-1.5"
+                          onClick={() => setConfirmDialog({
+                            type: 'approve',
+                            ticketId: ticket.id,
+                            nomenclature: ticket.nomenclature,
+                          })}
+                        >
+                          <Send className="h-3.5 w-3.5" />
+                          {t('approvalBoard.approve')}
+                        </Button>
                         <Button
                           size="sm"
                           variant="destructive"
@@ -287,7 +225,6 @@ export function ApprovalBoard({
                             ticketId: ticket.id,
                             nomenclature: ticket.nomenclature,
                           })}
-                          disabled={isSyncing}
                         >
                           <XCircle className="h-3.5 w-3.5" />
                           {t('approvalBoard.reject')}
@@ -301,7 +238,6 @@ export function ApprovalBoard({
                           variant="outline"
                           className="flex-1 gap-1.5"
                           onClick={() => onEdit(ticket.id)}
-                          disabled={isSyncing}
                         >
                           <Edit3 className="h-3.5 w-3.5" />
                           {t('action.edit')}
@@ -315,7 +251,6 @@ export function ApprovalBoard({
                             ticketId: ticket.id,
                             nomenclature: ticket.nomenclature,
                           })}
-                          disabled={isSyncing}
                         >
                           <Trash2 className="h-3.5 w-3.5" />
                         </Button>
@@ -403,17 +338,6 @@ export function ApprovalBoard({
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <code className="font-mono">{previewTicket?.nomenclature}</code>
-              {previewTicket?.basecampCardUrl && (
-                <a 
-                  href={previewTicket.basecampCardUrl} 
-                  target="_blank" 
-                  rel="noopener noreferrer"
-                  className="inline-flex items-center gap-1 text-sm text-primary hover:underline"
-                >
-                  <ExternalLink className="h-3.5 w-3.5" />
-                  Ver en Basecamp
-                </a>
-              )}
             </DialogTitle>
           </DialogHeader>
           
@@ -425,12 +349,6 @@ export function ApprovalBoard({
                   {TYPE_CONFIG[previewTicket.type].label}
                 </Badge>
                 <Badge variant="outline">{previewTicket.module}</Badge>
-                {previewTicket.basecampSynced && (
-                  <Badge variant="secondary" className="gap-1">
-                    <CheckCircle className="h-3 w-3" />
-                    Sincronizado
-                  </Badge>
-                )}
               </div>
 
               <div className="space-y-3">
@@ -439,7 +357,7 @@ export function ApprovalBoard({
                     {t('form.need')}
                   </h4>
                   <p className="text-sm bg-muted/50 p-3 rounded-lg">
-                    {previewTicket.formData.need || previewTicket.formData.whatIsHappening}
+                    {previewTicket.formData.need}
                   </p>
                 </div>
                 
@@ -448,7 +366,7 @@ export function ApprovalBoard({
                     {t('form.desiredFlow')}
                   </h4>
                   <p className="text-sm bg-muted/50 p-3 rounded-lg">
-                    {previewTicket.formData.desiredFlow || previewTicket.formData.expectedFlow}
+                    {previewTicket.formData.desiredFlow}
                   </p>
                 </div>
                 
@@ -457,11 +375,11 @@ export function ApprovalBoard({
                     {t('form.context')}
                   </h4>
                   <p className="text-sm bg-muted/50 p-3 rounded-lg">
-                    {previewTicket.formData.context || previewTicket.formData.additionalContext || '-'}
+                    {previewTicket.formData.context}
                   </p>
                 </div>
 
-                {previewTicket.formData.attachments && previewTicket.formData.attachments.length > 0 && (
+                {previewTicket.formData.attachments.length > 0 && (
                   <div>
                     <h4 className="text-sm font-medium text-muted-foreground mb-1">
                       {t('form.attachments')}
