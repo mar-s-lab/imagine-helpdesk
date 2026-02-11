@@ -1,5 +1,5 @@
-import { useNavigate, useLocation } from 'react-router-dom';
-import { Ticket, LayoutDashboard, Bell, Settings, ClipboardCheck, LogOut, BarChart3 } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+import { Ticket, LayoutDashboard, Bell, Settings, ClipboardCheck, LogOut } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { LanguageSwitcher } from '@/components/LanguageSwitcher';
@@ -25,8 +25,6 @@ export function Header({ activeView, onViewChange, notificationCount = 0, draftC
   const { t } = useLanguage();
   const { user, isAdmin, signOut } = useAuth();
   const navigate = useNavigate();
-  const location = useLocation();
-  const isOnExecutiveSummaries = location.pathname === '/executive-summaries';
 
   const handleSignOut = async () => {
     await signOut();
@@ -90,17 +88,6 @@ export function Header({ activeView, onViewChange, notificationCount = 0, draftC
             >
               <LayoutDashboard className="h-4 w-4" />
               <span className="hidden sm:inline">{t('header.tracking')}</span>
-            </Button>
-
-            {/* Executive Summaries - Basecamp Integration */}
-            <Button
-              variant={isOnExecutiveSummaries ? 'secondary' : 'ghost'}
-              size="sm"
-              onClick={() => navigate('/executive-summaries')}
-              className="gap-2"
-            >
-              <BarChart3 className="h-4 w-4" />
-              <span className="hidden sm:inline">{t('header.executiveSummaries') || 'Resúmenes'}</span>
             </Button>
           </nav>
 

@@ -50,6 +50,10 @@ export interface Ticket {
   followUpDate?: Date;
   basecampSynced?: boolean;
   rejectionReason?: string;
+  // Basecamp sync tracking (Phase 1)
+  basecampCardUrl?: string;
+  syncAttempts?: number;
+  lastSyncError?: string;
 }
 
 export interface EmailNotification {

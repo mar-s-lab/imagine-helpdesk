@@ -13,7 +13,6 @@ export const translations = {
     'header.newTicket': 'Nuevo Ticket',
     'header.tracking': 'Seguimiento',
     'header.approvals': 'Aprobaciones',
-    'header.executiveSummaries': 'Resúmenes',
     
     // Form - New friendly questions
     'form.title': 'Nuevo Ticket',
@@ -182,7 +181,6 @@ export const translations = {
     'header.newTicket': 'New Ticket',
     'header.tracking': 'Tracking',
     'header.approvals': 'Approvals',
-    'header.executiveSummaries': 'Summaries',
     
     // Form - New friendly questions
     'form.title': 'New Ticket',
@@ -351,7 +349,6 @@ export const translations = {
     'header.newTicket': 'Novo Ticket',
     'header.tracking': 'Acompanhamento',
     'header.approvals': 'Aprovações',
-    'header.executiveSummaries': 'Resumos',
     
     // Form - New friendly questions
     'form.title': 'Novo Ticket',
