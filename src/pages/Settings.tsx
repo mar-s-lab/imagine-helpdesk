@@ -1,23 +1,12 @@
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { User, Shield, Mail, Calendar, Loader2, Link2, CheckCircle, AlertCircle, ExternalLink, Unlink } from 'lucide-react';
+import { User, Shield, Mail, Calendar, Loader2, Link2, CheckCircle, AlertCircle, ExternalLink } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useSearchParams } from 'react-router-dom';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-  AlertDialogTrigger,
-} from '@/components/ui/alert-dialog';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { supabase } from '@/integrations/supabase/client';
@@ -27,30 +16,8 @@ export default function Settings() {
   const { user, role, isLoading, isAdmin } = useAuth();
   const [searchParams, setSearchParams] = useSearchParams();
   const [isConnectingBasecamp, setIsConnectingBasecamp] = useState(false);
-  const [isDisconnectingBasecamp, setIsDisconnectingBasecamp] = useState(false);
   const [basecampStatus, setBasecampStatus] = useState<'unknown' | 'connected' | 'disconnected'>('unknown');
   const [isCheckingBasecamp, setIsCheckingBasecamp] = useState(true);
-
-  const handleDisconnectBasecamp = async () => {
-    setIsDisconnectingBasecamp(true);
-    try {
-      const { data, error } = await supabase.functions.invoke('basecamp-disconnect', {
-        method: 'DELETE',
-      });
-
-      if (error) {
-        throw new Error(error.message || 'Error al desconectar');
-      }
-
-      toast.success('✅ Basecamp desconectado correctamente');
-      setBasecampStatus('disconnected');
-    } catch (err) {
-      console.error('Basecamp disconnect error:', err);
-      toast.error(err instanceof Error ? err.message : 'Error al desconectar Basecamp');
-    } finally {
-      setIsDisconnectingBasecamp(false);
-    }
-  };
 
   // Check URL params for Basecamp connection status
   useEffect(() => {
@@ -307,9 +274,9 @@ export default function Settings() {
                     <div className="flex items-center gap-2">
                       {basecampStatus === 'connected' ? (
                         <>
-                          <CheckCircle className="h-5 w-5 text-primary" />
+                          <CheckCircle className="h-5 w-5 text-green-500" />
                           <div>
-                            <p className="font-medium text-primary">Conectado</p>
+                            <p className="font-medium text-green-700">Conectado</p>
                             <p className="text-sm text-muted-foreground">
                               Los tickets aprobados se sincronizarán automáticamente
                             </p>
@@ -317,9 +284,9 @@ export default function Settings() {
                         </>
                       ) : (
                         <>
-                          <AlertCircle className="h-5 w-5 text-warning" />
+                          <AlertCircle className="h-5 w-5 text-amber-500" />
                           <div>
-                            <p className="font-medium text-warning">No conectado</p>
+                            <p className="font-medium text-amber-700">No conectado</p>
                             <p className="text-sm text-muted-foreground">
                               Conecta tu cuenta para habilitar la sincronización
                             </p>
@@ -334,7 +301,7 @@ export default function Settings() {
                   <div className="flex items-center gap-3">
                     <Button
                       onClick={handleConnectBasecamp}
-                      disabled={isConnectingBasecamp || isDisconnectingBasecamp}
+                      disabled={isConnectingBasecamp}
                       variant={basecampStatus === 'connected' ? 'outline' : 'default'}
                     >
                       {isConnectingBasecamp ? (
@@ -354,52 +321,10 @@ export default function Settings() {
                         </>
                       )}
                     </Button>
-
-                    {basecampStatus === 'connected' && (
-                      <AlertDialog>
-                        <AlertDialogTrigger asChild>
-                          <Button
-                            variant="destructive"
-                            disabled={isDisconnectingBasecamp}
-                          >
-                            {isDisconnectingBasecamp ? (
-                              <>
-                                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                                Desconectando...
-                              </>
-                            ) : (
-                              <>
-                                <Unlink className="mr-2 h-4 w-4" />
-                                Desconectar
-                              </>
-                            )}
-                          </Button>
-                        </AlertDialogTrigger>
-                        <AlertDialogContent>
-                          <AlertDialogHeader>
-                            <AlertDialogTitle>¿Desconectar Basecamp?</AlertDialogTitle>
-                            <AlertDialogDescription>
-                              Esto eliminará la conexión con Basecamp. Los tickets que ya fueron sincronizados 
-                              permanecerán en Basecamp, pero los nuevos tickets no se sincronizarán hasta que 
-                              vuelvas a conectar.
-                            </AlertDialogDescription>
-                          </AlertDialogHeader>
-                          <AlertDialogFooter>
-                            <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                            <AlertDialogAction
-                              onClick={handleDisconnectBasecamp}
-                              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-                            >
-                              Sí, desconectar
-                            </AlertDialogAction>
-                          </AlertDialogFooter>
-                        </AlertDialogContent>
-                      </AlertDialog>
-                    )}
                   </div>
 
                   <p className="text-xs text-muted-foreground">
-                    Al conectar, autorizas a la aplicación a crear cards en tu proyecto de Basecamp.
+                    Al conectar, autorizas a la aplicación a crear To-dos en tu proyecto de Basecamp.
                   </p>
                 </>
               )}
