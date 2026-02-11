@@ -1,13 +1,22 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-import {
-  getCorsHeaders,
-  createCorsPreflightResponse,
-  createJsonResponse,
-  logInfo,
-  logError,
-  logWarn,
-} from "../_shared/cors.ts";
+
+// Allowed origins for CORS - restrict to application domains
+const allowedOriginPatterns = [
+  /^https:\/\/imagine-helpdesk\.lovable\.app$/,
+  /^https:\/\/id-preview--[a-z0-9-]+\.lovable\.app$/,
+  /^https:\/\/[a-z0-9-]+\.lovableproject\.com$/,
+];
+
+function getCorsHeaders(origin: string | null): Record<string, string> {
+  const isAllowed = origin && allowedOriginPatterns.some(pattern => pattern.test(origin));
+  const allowedOrigin = isAllowed ? origin : 'https://imagine-helpdesk.lovable.app';
+  
+  return {
+    "Access-Control-Allow-Origin": allowedOrigin,
+    "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
+  };
+}
 
 interface TicketData {
   nomenclature: string;
@@ -31,13 +40,13 @@ async function refreshTokenIfNeeded(
     return tokenData.access_token;
   }
 
-  logInfo("basecamp_token_refresh_start", {});
+  console.log("Token expired, refreshing...");
   
   const clientId = Deno.env.get("BASECAMP_CLIENT_ID")?.trim();
   const clientSecret = Deno.env.get("BASECAMP_CLIENT_SECRET")?.trim();
   
   if (!clientId || !clientSecret) {
-    logError("basecamp_token_refresh_config_error", new Error("Missing credentials"));
+    console.error("Missing Basecamp OAuth credentials");
     return null;
   }
 
@@ -55,15 +64,13 @@ async function refreshTokenIfNeeded(
   });
 
   if (!refreshResponse.ok) {
-    logError("basecamp_token_refresh_failed", new Error("Refresh failed"), {
-      status: refreshResponse.status,
-    });
+    console.error("Token refresh failed:", refreshResponse.status);
     return null;
   }
 
   const newTokenData = await refreshResponse.json();
   
-  // Update stored token
+  // Update stored token using a new client
   const supabase = createClient(supabaseUrl, supabaseServiceKey);
   await supabase
     .from('basecamp_tokens')
@@ -75,7 +82,6 @@ async function refreshTokenIfNeeded(
     })
     .eq('id', 'system');
 
-  logInfo("basecamp_token_refresh_success", {});
   return newTokenData.access_token;
 }
 
@@ -98,16 +104,20 @@ ${body.formData.context}
 
 serve(async (req) => {
   const origin = req.headers.get("origin");
+  const corsHeaders = getCorsHeaders(origin);
 
   // Handle CORS preflight
   if (req.method === "OPTIONS") {
-    return createCorsPreflightResponse(origin);
+    return new Response("ok", { headers: corsHeaders });
   }
 
   try {
     // Only allow POST
     if (req.method !== "POST") {
-      return createJsonResponse({ error: "Method not allowed" }, 405, origin);
+      return new Response(
+        JSON.stringify({ error: "Method not allowed" }),
+        { status: 405, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
     }
 
     const supabaseUrl = Deno.env.get("SUPABASE_URL");
@@ -118,15 +128,21 @@ serve(async (req) => {
     const columnId = Deno.env.get("BASECAMP_COLUMN_ID")?.trim();
 
     if (!supabaseUrl || !supabaseAnonKey || !supabaseServiceKey) {
-      logError("basecamp_sync_config_error", new Error("Missing Supabase config"));
-      return createJsonResponse({ error: "Server configuration error" }, 500, origin);
+      console.error("Missing Supabase configuration");
+      return new Response(
+        JSON.stringify({ error: "Server configuration error" }),
+        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
     }
 
-    // Verify JWT token
+    // Verify JWT token in code (required for Lovable Cloud ES256 tokens)
     const authHeader = req.headers.get("Authorization");
     if (!authHeader?.startsWith("Bearer ")) {
-      logError("basecamp_sync_auth_error", new Error("Missing authorization"));
-      return createJsonResponse({ error: "Unauthorized" }, 401, origin);
+      console.error("Missing or invalid authorization header");
+      return new Response(
+        JSON.stringify({ error: "Unauthorized" }),
+        { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
     }
 
     const token = authHeader.replace("Bearer ", "");
@@ -136,18 +152,20 @@ serve(async (req) => {
 
     const { data: { user }, error: authError } = await authClient.auth.getUser(token);
     if (authError || !user) {
-      logError("basecamp_sync_jwt_error", authError || new Error("Invalid token"));
-      return createJsonResponse({ error: "Invalid authentication" }, 401, origin);
+      console.error("JWT verification failed:", authError);
+      return new Response(
+        JSON.stringify({ error: "Invalid authentication" }),
+        { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
     }
 
-    logInfo("basecamp_sync_auth_success", { userId: user.id });
+    console.log("Authenticated user:", user.id);
 
     if (!accountId || !projectId || !columnId) {
-      logError("basecamp_sync_project_config_error", new Error("Missing project config"));
-      return createJsonResponse(
-        { error: "Basecamp project not configured. Please set BASECAMP_ACCOUNT_ID, BASECAMP_PROJECT_ID, and BASECAMP_COLUMN_ID." },
-        500,
-        origin
+      console.error("Missing Basecamp project configuration");
+      return new Response(
+        JSON.stringify({ error: "Basecamp project not configured. Please set BASECAMP_ACCOUNT_ID, BASECAMP_PROJECT_ID, and BASECAMP_COLUMN_ID." }),
+        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
@@ -155,10 +173,13 @@ serve(async (req) => {
     const body: TicketData = await req.json();
     
     if (!body.nomenclature || !body.description) {
-      return createJsonResponse({ error: "Missing required ticket data" }, 400, origin);
+      return new Response(
+        JSON.stringify({ error: "Missing required ticket data" }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
     }
 
-    // Get access token from database
+    // Get access token from database using service role
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
     
     const { data: tokenData, error: tokenError } = await supabase
@@ -168,11 +189,10 @@ serve(async (req) => {
       .single();
 
     if (tokenError || !tokenData) {
-      logError("basecamp_sync_no_token", tokenError || new Error("No token found"));
-      return createJsonResponse(
-        { error: "Basecamp not connected. Please connect in Settings." },
-        401,
-        origin
+      console.error("No Basecamp token found:", tokenError);
+      return new Response(
+        JSON.stringify({ error: "Basecamp not connected. Please connect in Settings." }),
+        { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
@@ -180,24 +200,20 @@ serve(async (req) => {
     const accessToken = await refreshTokenIfNeeded(tokenData, supabaseUrl, supabaseServiceKey);
     
     if (!accessToken) {
-      return createJsonResponse(
-        { error: "Basecamp session expired. Please reconnect in Settings." },
-        401,
-        origin
+      return new Response(
+        JSON.stringify({ error: "Basecamp session expired. Please reconnect in Settings." }),
+        { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
-    // Build card content
+    // Build card content with ticket details
     const cardContent = buildCardContent(body);
 
-    // Create Card in Basecamp
+    // Create Card in Basecamp Card Table
+    // API: POST /buckets/{project_id}/card_tables/lists/{column_id}/cards.json
     const basecampApiUrl = `https://3.basecampapi.com/${accountId}/buckets/${projectId}/card_tables/lists/${columnId}/cards.json`;
     
-    logInfo("basecamp_card_create_start", {
-      ticketId: body.nomenclature,
-      module: body.module,
-      type: body.type,
-    });
+    console.log("Creating card in Basecamp:", basecampApiUrl);
 
     const cardResponse = await fetch(basecampApiUrl, {
       method: "POST",
@@ -215,54 +231,40 @@ serve(async (req) => {
 
     if (!cardResponse.ok) {
       const errorText = await cardResponse.text();
+      console.error("Basecamp API error:", cardResponse.status, errorText);
       
       // Handle rate limiting
       if (cardResponse.status === 429) {
-        logWarn("basecamp_rate_limit", { ticketId: body.nomenclature });
-        return createJsonResponse(
-          { error: "Basecamp rate limit exceeded. Please try again later." },
-          429,
-          origin
+        return new Response(
+          JSON.stringify({ error: "Basecamp rate limit exceeded. Please try again later." }),
+          { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } }
         );
       }
       
-      logError("basecamp_card_create_failed", new Error(errorText), {
-        status: cardResponse.status,
-        ticketId: body.nomenclature,
-      });
-      
-      return createJsonResponse(
-        { error: "Failed to create card in Basecamp" },
-        500,
-        origin
+      return new Response(
+        JSON.stringify({ error: "Failed to create card in Basecamp" }),
+        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
     const cardData = await cardResponse.json();
-    
-    logInfo("basecamp_card_create_success", {
-      ticketId: body.nomenclature,
-      cardId: cardData.id,
-      cardUrl: cardData.app_url,
-      userId: user.id,
-    });
+    console.log("Successfully created Basecamp card:", cardData.id);
 
-    return createJsonResponse(
-      { 
+    return new Response(
+      JSON.stringify({ 
         success: true, 
         cardId: cardData.id,
         cardUrl: cardData.app_url,
-      },
-      200,
-      origin
+      }),
+      { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
 
   } catch (error: unknown) {
-    logError("basecamp_sync_exception", error);
-    return createJsonResponse(
-      { error: error instanceof Error ? error.message : "Sync failed" },
-      500,
-      origin
+    console.error("Error in basecamp-sync:", error);
+    const errorMessage = error instanceof Error ? error.message : "Sync failed";
+    return new Response(
+      JSON.stringify({ error: errorMessage }),
+      { status: 500, headers: { ...getCorsHeaders(req.headers.get("origin")), "Content-Type": "application/json" } }
     );
   }
 });
