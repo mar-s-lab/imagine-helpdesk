@@ -14,6 +14,50 @@ export type Database = {
   }
   public: {
     Tables: {
+      basecamp_sync_log: {
+        Row: {
+          action: string
+          basecamp_card_id: string | null
+          basecamp_response: Json | null
+          created_at: string
+          created_by: string | null
+          error_message: string | null
+          id: string
+          status: string
+          ticket_id: string | null
+        }
+        Insert: {
+          action: string
+          basecamp_card_id?: string | null
+          basecamp_response?: Json | null
+          created_at?: string
+          created_by?: string | null
+          error_message?: string | null
+          id?: string
+          status: string
+          ticket_id?: string | null
+        }
+        Update: {
+          action?: string
+          basecamp_card_id?: string | null
+          basecamp_response?: Json | null
+          created_at?: string
+          created_by?: string | null
+          error_message?: string | null
+          id?: string
+          status?: string
+          ticket_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "basecamp_sync_log_ticket_id_fkey"
+            columns: ["ticket_id"]
+            isOneToOne: false
+            referencedRelation: "tickets"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       basecamp_tokens: {
         Row: {
           access_token: string
@@ -71,6 +115,78 @@ export type Database = {
           id?: string
           updated_at?: string
           user_id?: string
+        }
+        Relationships: []
+      }
+      tickets: {
+        Row: {
+          basecamp_card_id: string | null
+          basecamp_card_url: string | null
+          basecamp_synced: boolean | null
+          classification: Json
+          created_at: string | null
+          created_by: string | null
+          description: string
+          desired_date: string | null
+          estimated_deploy_date: string | null
+          follow_up_date: string | null
+          form_data: Json
+          id: string
+          last_sync_error: string | null
+          module: string
+          nomenclature: string
+          notes: string[] | null
+          rejection_reason: string | null
+          status: string
+          sync_attempts: number | null
+          type: string
+          updated_at: string | null
+        }
+        Insert: {
+          basecamp_card_id?: string | null
+          basecamp_card_url?: string | null
+          basecamp_synced?: boolean | null
+          classification: Json
+          created_at?: string | null
+          created_by?: string | null
+          description: string
+          desired_date?: string | null
+          estimated_deploy_date?: string | null
+          follow_up_date?: string | null
+          form_data: Json
+          id?: string
+          last_sync_error?: string | null
+          module: string
+          nomenclature: string
+          notes?: string[] | null
+          rejection_reason?: string | null
+          status?: string
+          sync_attempts?: number | null
+          type: string
+          updated_at?: string | null
+        }
+        Update: {
+          basecamp_card_id?: string | null
+          basecamp_card_url?: string | null
+          basecamp_synced?: boolean | null
+          classification?: Json
+          created_at?: string | null
+          created_by?: string | null
+          description?: string
+          desired_date?: string | null
+          estimated_deploy_date?: string | null
+          follow_up_date?: string | null
+          form_data?: Json
+          id?: string
+          last_sync_error?: string | null
+          module?: string
+          nomenclature?: string
+          notes?: string[] | null
+          rejection_reason?: string | null
+          status?: string
+          sync_attempts?: number | null
+          type?: string
+          updated_at?: string | null
         }
         Relationships: []
       }
